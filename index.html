@@ -1,0 +1,879 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Aakarsh's FireRed Planner</title>
+<link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&family=Chakra+Petch:wght@400;600;700&display=swap" rel="stylesheet">
+<style>
+:root{--fire-red:#e53935;--fire-dark:#b71c1c;--ember:#ff6f00;--amber:#ffab00;--bg-deep:#0a0a0f;--bg-card:#141420;--bg-card-hover:#1c1c2e;--border:#2a2a3a;--text:#e8e6e3;--text-dim:#8a8a9a;--text-muted:#5a5a6a;--green:#4caf50;--blue:#42a5f5;--danger:#ff5252;--ice:#4fc3f7;--psychic:#f06292;--dragon:#7c4dff;--ghost:#7e57c2;--fighting:#d32f2f;--ground:#d4a437;--rock:#a1887f;--flying:#90caf9;--water:#2196f3;--electric:#fdd835;--fire:#ef5350;--grass:#66bb6a;--normal:#bdbdbd;--bug:#9ccc65;--poison:#ab47bc;--steel:#78909c;--dark:#5d4037}
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:var(--bg-deep);color:var(--text);font-family:'Chakra Petch',sans-serif;min-height:100vh}
+body::before{content:'';position:fixed;inset:0;background:radial-gradient(ellipse at 20% 0%,rgba(229,57,53,.08) 0%,transparent 60%),radial-gradient(ellipse at 80% 100%,rgba(255,111,0,.05) 0%,transparent 60%);pointer-events:none}
+.app{position:relative;z-index:1;max-width:1200px;margin:0 auto;padding:16px}
+.header{text-align:center;padding:32px 16px 24px;border-bottom:2px solid var(--fire-dark);margin-bottom:24px;position:relative}
+.header::after{content:'';position:absolute;bottom:-2px;left:50%;transform:translateX(-50%);width:120px;height:2px;background:var(--ember);box-shadow:0 0 12px var(--ember)}
+.header h1{font-family:'Press Start 2P',monospace;font-size:18px;color:var(--fire-red);text-shadow:0 0 20px rgba(229,57,53,.4);letter-spacing:2px;line-height:1.6}
+.header .subtitle{font-size:12px;color:var(--text-dim);margin-top:8px;font-family:'Press Start 2P',monospace;letter-spacing:1px}
+.badge-row{display:flex;justify-content:center;gap:6px;margin-top:14px;flex-wrap:wrap}
+.badge-pip{width:28px;height:28px;border-radius:50%;border:2px solid var(--border);display:flex;align-items:center;justify-content:center;font-size:10px}
+.badge-pip.earned{border-color:var(--amber);background:rgba(255,171,0,.15);color:var(--amber)}
+.badge-pip.pending{border-color:var(--text-muted);color:var(--text-muted)}
+.tabs{display:flex;gap:4px;margin-bottom:24px;overflow-x:auto;padding-bottom:4px;-webkit-overflow-scrolling:touch}
+.tab{padding:10px 18px;background:var(--bg-card);border:1px solid var(--border);border-bottom:none;border-radius:6px 6px 0 0;font-family:'Chakra Petch',sans-serif;font-weight:600;font-size:13px;color:var(--text-dim);cursor:pointer;transition:all .2s;white-space:nowrap;flex-shrink:0}
+.tab:hover{color:var(--text);background:var(--bg-card-hover)}
+.tab.active{color:var(--fire-red);background:var(--bg-card-hover);border-color:var(--fire-red)}
+.view{display:none;animation:fadeIn .3s ease}.view.active{display:block}
+@keyframes fadeIn{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
+.team-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(320px,1fr));gap:16px}
+.pokemon-card{background:var(--bg-card);border:1px solid var(--border);border-radius:8px;padding:20px;cursor:pointer;transition:all .25s;position:relative;overflow:hidden}
+.pokemon-card::before{content:'';position:absolute;top:0;left:0;right:0;height:3px;background:linear-gradient(90deg,var(--tc1),var(--tc2))}
+.pokemon-card:hover{border-color:var(--fire-red);transform:translateY(-2px);box-shadow:0 8px 24px rgba(229,57,53,.15)}
+.pokemon-card.backup{opacity:.7;border-style:dashed}.pokemon-card.backup:hover{opacity:1}
+.card-top{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:12px}
+.poke-name{font-family:'Press Start 2P',monospace;font-size:14px}
+.poke-level{font-family:'Press Start 2P',monospace;font-size:12px;color:var(--amber)}
+.poke-types{display:flex;gap:6px;margin-bottom:12px}
+.type-badge{padding:2px 10px;border-radius:3px;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:#fff;display:inline-block}
+.level-bar-container{margin:12px 0 8px}
+.level-bar-label{display:flex;justify-content:space-between;font-size:10px;color:var(--text-dim);margin-bottom:4px}
+.level-bar{height:6px;background:var(--border);border-radius:3px;overflow:hidden}
+.level-bar-fill{height:100%;border-radius:3px;transition:width .5s ease}
+.moves-compact{display:grid;grid-template-columns:1fr 1fr;gap:4px;margin-top:8px}
+.move-pill{padding:4px 8px;background:rgba(255,255,255,.04);border:1px solid var(--border);border-radius:3px;font-size:11px;color:var(--text-dim);text-align:center;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.move-pill.locked{border-left:2px solid var(--green);color:var(--text)}
+.move-pill.pending{border-left:2px solid var(--amber);color:var(--amber);font-style:italic}
+.backup-tag{position:absolute;top:12px;right:12px;font-size:9px;color:var(--text-muted);text-transform:uppercase;letter-spacing:2px;font-family:'Press Start 2P',monospace}
+.dex-num{font-family:'Press Start 2P',monospace;font-size:9px;color:var(--text-muted);letter-spacing:1px}
+.detail-back{display:inline-flex;align-items:center;gap:6px;padding:8px 16px;background:var(--bg-card);border:1px solid var(--border);border-radius:4px;color:var(--text-dim);cursor:pointer;font-size:13px;margin-bottom:20px;transition:all .2s}
+.detail-back:hover{color:var(--text);border-color:var(--fire-red)}
+.detail-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:24px;flex-wrap:wrap;gap:12px}
+.detail-name{font-family:'Press Start 2P',monospace;font-size:20px}
+.detail-level-edit{display:flex;align-items:center;gap:8px}
+.detail-level-edit label{font-size:12px;color:var(--text-dim);font-family:'Press Start 2P',monospace}
+.detail-level-edit input{width:60px;padding:6px 8px;background:var(--bg-deep);border:1px solid var(--border);border-radius:4px;color:var(--amber);font-family:'Press Start 2P',monospace;font-size:14px;text-align:center}
+.detail-level-edit input:focus{outline:none;border-color:var(--fire-red)}
+.detail-level-edit button{padding:6px 14px;background:var(--fire-dark);border:1px solid var(--fire-red);border-radius:4px;color:#fff;font-size:12px;cursor:pointer;font-family:'Chakra Petch',sans-serif;font-weight:600;transition:all .2s}
+.detail-level-edit button:hover{background:var(--fire-red)}
+.section-title{font-family:'Press Start 2P',monospace;font-size:11px;color:var(--fire-red);margin:24px 0 12px;padding-bottom:6px;border-bottom:1px solid var(--border);letter-spacing:1px}
+.moveset-table{width:100%;border-collapse:collapse}
+.moveset-table th{text-align:left;font-size:10px;color:var(--text-muted);padding:6px 10px;text-transform:uppercase;letter-spacing:1px;border-bottom:1px solid var(--border)}
+.moveset-table td{padding:10px;border-bottom:1px solid rgba(42,42,58,.5);font-size:13px}
+.moveset-table tr:hover{background:rgba(255,255,255,.02)}
+.milestone-list{list-style:none}
+.milestone-list li{padding:10px 14px;margin-bottom:6px;background:var(--bg-card);border-left:3px solid var(--border);border-radius:0 4px 4px 0;font-size:13px;display:flex;align-items:center;gap:10px}
+.milestone-list li.done{border-left-color:var(--green);color:var(--text-dim);text-decoration:line-through}
+.milestone-list li.next{border-left-color:var(--amber);background:rgba(255,171,0,.05)}
+.milestone-list li.future{border-left-color:var(--text-muted)}
+.battle-card{background:var(--bg-card);border:1px solid var(--border);border-radius:8px;padding:20px;margin-bottom:16px;position:relative;overflow:hidden}
+.battle-card h3{font-family:'Press Start 2P',monospace;font-size:12px;margin-bottom:4px}
+.battle-card .trainer-type{font-size:11px;color:var(--text-dim);margin-bottom:12px}
+.battle-card .target-level{position:absolute;top:16px;right:16px;font-family:'Press Start 2P',monospace;font-size:10px;color:var(--amber)}
+.enemy-team-table{width:100%;border-collapse:collapse;margin-bottom:14px;font-size:12px}
+.enemy-team-table th{text-align:left;font-size:9px;color:var(--text-muted);padding:4px 8px;text-transform:uppercase;letter-spacing:1px;border-bottom:1px solid var(--border)}
+.enemy-team-table td{padding:6px 8px;border-bottom:1px solid rgba(42,42,58,.3);vertical-align:top}
+.enemy-team-table .mn{font-weight:700}.enemy-team-table .mm{color:var(--text-dim);font-size:11px}.enemy-team-table .mi{color:var(--amber);font-size:10px;font-style:italic}
+.strat-row{display:flex;gap:16px;flex-wrap:wrap}
+.strat-item{flex:1;min-width:200px;padding:10px 14px;background:rgba(255,255,255,.02);border-radius:4px;border:1px solid var(--border)}
+.strat-label{font-size:10px;color:var(--text-muted);text-transform:uppercase;letter-spacing:1px;margin-bottom:4px}
+.strat-value{font-size:13px;font-weight:600}
+.danger-box{margin-top:12px;padding:10px 14px;background:rgba(255,82,82,.06);border:1px solid rgba(255,82,82,.2);border-radius:6px;font-size:12px;line-height:1.6}.danger-box strong{color:var(--danger)}
+.tip-box{margin-top:8px;padding:10px 14px;background:rgba(76,175,80,.06);border:1px solid rgba(76,175,80,.2);border-radius:6px;font-size:12px;line-height:1.6}.tip-box strong{color:var(--green)}
+.trivia-box{margin-top:8px;padding:10px 14px;background:rgba(66,165,245,.06);border:1px solid rgba(66,165,245,.2);border-radius:6px;font-size:12px;line-height:1.6;color:var(--text-dim)}.trivia-box strong{color:var(--blue)}
+.matchup-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:8px}
+.matchup-item{padding:10px 14px;background:rgba(255,255,255,.02);border:1px solid var(--border);border-radius:4px}
+.matchup-vs{font-size:10px;color:var(--text-muted);text-transform:uppercase}
+.matchup-answer{font-size:13px;font-weight:600;color:var(--green);margin-top:2px}
+.matchup-warn{font-size:10px;color:var(--danger);margin-top:2px}
+.grind-card{background:var(--bg-card);border:1px solid var(--border);border-radius:8px;padding:20px;margin-bottom:16px}
+.grind-card h3{font-family:'Press Start 2P',monospace;font-size:11px;color:var(--ember);margin-bottom:10px}
+.grind-card p{font-size:13px;line-height:1.6;color:var(--text-dim)}
+.gh{color:var(--text);font-weight:600}
+.exp-priority{counter-reset:priority}
+.exp-step{display:flex;align-items:flex-start;gap:14px;padding:14px;background:var(--bg-card);border:1px solid var(--border);border-radius:8px;margin-bottom:10px}
+.exp-step::before{counter-increment:priority;content:counter(priority);flex-shrink:0;width:28px;height:28px;background:var(--fire-dark);border-radius:50%;display:flex;align-items:center;justify-content:center;font-family:'Press Start 2P',monospace;font-size:10px;color:var(--amber)}
+.exp-step-content h4{font-size:14px;margin-bottom:4px}
+.exp-step-content p{font-size:12px;color:var(--text-dim);line-height:1.5}
+.tracker-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:12px;margin-top:12px}
+.tracker-card{background:var(--bg-card);border:1px solid var(--border);border-radius:8px;padding:16px}
+.tracker-card h4{font-family:'Press Start 2P',monospace;font-size:11px;margin-bottom:10px}
+.tracker-controls{display:flex;align-items:center;gap:8px;margin-bottom:10px}
+.tracker-controls button{width:30px;height:30px;background:var(--bg-deep);border:1px solid var(--border);border-radius:4px;color:var(--text);font-size:16px;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all .15s}
+.tracker-controls button:hover{border-color:var(--fire-red);color:var(--fire-red)}
+.tracker-controls .tracker-lvl{font-family:'Press Start 2P',monospace;font-size:16px;color:var(--amber);min-width:40px;text-align:center}
+.tracker-next{font-size:11px;color:var(--text-dim);line-height:1.5}.tracker-next strong{color:var(--amber)}
+.reset-btn{display:inline-block;margin-top:16px;padding:8px 20px;background:transparent;border:1px solid var(--text-muted);border-radius:4px;color:var(--text-muted);font-size:12px;cursor:pointer;transition:all .2s}
+.reset-btn:hover{border-color:var(--fire-red);color:var(--fire-red)}
+.collapse-toggle{cursor:pointer;user-select:none;display:flex;align-items:center;justify-content:space-between;width:100%}.collapse-toggle .arrow{transition:transform 0.2s;font-size:14px;color:var(--text-muted)}.collapse-toggle.open .arrow{transform:rotate(90deg)}.collapse-body{display:none}.collapse-body.open{display:block}
+.tac-note{padding:14px 18px;background:rgba(255,171,0,.04);border-left:3px solid var(--amber);border-radius:0 6px 6px 0;margin-bottom:10px;font-size:13px;line-height:1.5}.tac-note strong{color:var(--amber)}
+.hm-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:8px;margin-top:8px}
+.hm-item{padding:10px;background:var(--bg-card);border:1px solid var(--border);border-radius:6px;text-align:center}
+.hm-move{font-weight:700;font-size:13px;margin-bottom:4px}.hm-holder{font-size:11px;color:var(--text-dim)}
+.mechanics-card{background:var(--bg-card);border:1px solid var(--border);border-radius:8px;padding:16px;margin-bottom:12px}
+.mechanics-card h4{font-family:'Press Start 2P',monospace;font-size:10px;color:var(--ember);margin-bottom:8px}
+.mechanics-card p{font-size:12px;color:var(--text-dim);line-height:1.6}
+.split-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:8px}
+.split-col{padding:10px;border-radius:4px;font-size:11px}
+.split-col.physical{background:rgba(229,57,53,.08);border:1px solid rgba(229,57,53,.2)}
+.split-col.special{background:rgba(66,165,245,.08);border:1px solid rgba(66,165,245,.2)}
+.split-col h5{font-size:10px;margin-bottom:6px;text-transform:uppercase;letter-spacing:1px}
+.impact-item{padding:8px 12px;background:var(--bg-card);border:1px solid var(--border);border-radius:6px;margin-top:8px;font-size:12px;line-height:1.5}.impact-item strong{color:var(--text)}
+@media(max-width:600px){.header h1{font-size:13px}.team-grid,.matchup-grid,.split-grid{grid-template-columns:1fr}.strat-row{flex-direction:column}.tab{padding:8px 12px;font-size:11px}}
+</style>
+</head>
+<body>
+<div class="app">
+<div class="header">
+  <h1>AAKARSH'S FIRERED<br>PLANNER</h1>
+  <div class="subtitle">🏆 CHAMPION — POST-GAME REBUILD</div>
+  <div style="font-size:10px;color:var(--text-muted);margin-top:6px;letter-spacing:0.5px">Nintendo Switch Edition &bull; Mar 2026 &bull; v15</div>
+  <div style="display:flex;justify-content:center;gap:20px;margin-top:14px;flex-wrap:wrap;font-size:12px">
+    <span style="color:var(--text-dim)">&#x1F3AE; <span style="color:var(--text)">ZULU</span></span>
+    <span style="color:var(--text-dim)">ID <span style="color:var(--text)">07533</span></span>
+    <span style="color:var(--text-dim)">&#x1F4D6; <span style="color:var(--amber)">94</span> caught</span>
+    <span style="color:var(--text-dim)">TARGET <span style="color:var(--fire-red)">LV 65-70</span></span>
+  </div>
+  <div style="display:flex;justify-content:center;gap:6px;margin-top:12px;flex-wrap:wrap">
+    <div class="badge-pip earned" title="Boulder Badge">&#x1FAA8;</div>
+    <div class="badge-pip earned" title="Cascade Badge">&#x1F4A7;</div>
+    <div class="badge-pip earned" title="Thunder Badge">&#x26A1;</div>
+    <div class="badge-pip earned" title="Rainbow Badge">&#x1F308;</div>
+    <div class="badge-pip earned" title="Soul Badge">&#x1F49C;</div>
+    <div class="badge-pip earned" title="Marsh Badge">&#x1F52E;</div>
+    <div class="badge-pip earned" title="Volcano Badge">&#x1F30B;</div>
+    <div class="badge-pip earned" title="Earth Badge">&#x1F30D;</div>
+  </div>
+  <div style="display:flex;justify-content:center;gap:4px;margin-top:4px;font-size:8px;color:var(--text-muted);flex-wrap:wrap">
+    <span style="width:28px;text-align:center">BDR</span><span style="width:28px;text-align:center">CSC</span><span style="width:28px;text-align:center">THN</span><span style="width:28px;text-align:center">RBW</span><span style="width:28px;text-align:center">SOL</span><span style="width:28px;text-align:center">MRS</span><span style="width:28px;text-align:center">VLC</span><span style="width:28px;text-align:center">ERT</span>
+  </div>
+</div>
+<div class="tabs">
+  <div class="tab active" data-view="team">&#x1F525; TEAM</div>
+  <div class="tab" data-view="battles">&#x2694;&#xFE0F; E4 LOG</div>
+  <div class="tab" data-view="rematch">&#x1F525;&#x1F525; E4 REMATCH</div>
+  <div class="tab" data-view="grind">&#x1F4AA; POST-GAME</div>
+  <div class="tab" data-view="sevii">&#x1F3DD;&#xFE0F; SEVII</div>
+  <div class="tab" data-view="notes">&#x1F4CB; NOTES</div>
+</div>
+<div class="view active" id="view-team"></div>
+<div class="view" id="view-detail"></div>
+<div class="view" id="view-battles"></div>
+<div class="view" id="view-rematch"></div>
+<div class="view" id="view-grind"></div>
+<div class="view" id="view-sevii"></div>
+<div class="view" id="view-notes"></div>
+</div>
+<script>
+const TC={fire:'#ef5350',water:'#2196f3',ice:'#4fc3f7',electric:'#fdd835',grass:'#66bb6a',poison:'#ab47bc',ground:'#d4a437',rock:'#a1887f',psychic:'#f06292',ghost:'#7e57c2',dragon:'#7c4dff',flying:'#90caf9',fighting:'#d32f2f',normal:'#bdbdbd',bug:'#9ccc65',steel:'#78909c',dark:'#5d4037'};
+const DEX={Charizard:'#006',Jolteon:'#135',Lapras:'#131',Snorlax:'#143',Nidoking:'#034',Jynx:'#124',Gyarados:'#130',Growlithe:'#058',Ponyta:'#077',Rapidash:'#078',Arcanine:'#059',Rhyhorn:'#111',Dugtrio:'#051',Nidoqueen:'#031',Dewgong:'#087',Cloyster:'#091',Slowbro:'#080',Onix:'#095',Hitmonchan:'#107',Hitmonlee:'#106',Machamp:'#068','Gengar #1':'#094',Golbat:'#042',Haunter:'#093',Arbok:'#024','Gengar #2':'#094',Dragonair:'#148',Aerodactyl:'#142',Dragonite:'#149',Pidgeot:'#018',Alakazam:'#065',Rhydon:'#112',Exeggutor:'#103',Blastoise:'#009'};
+const dx=n=>DEX[n]||'';
+const tb=t=>`<span class="type-badge" style="background:${TC[t]||'#888'}">${t}</span>`;
+const BASE_TEAM=[
+{name:'Charizard',nick:'LPG',dex:'#006',types:['fire','flying'],baseLvl:51,target:70,backup:false,heldItem:{name:'Charcoal',effect:'+20% Fire moves',loc:'Celadon Game Corner (1,000 coins) or wild Magmar (Cinnabar Mansion — Thief)',obtained:false},
+currentMoves:[{name:'Flamethrower',type:'fire',locked:true},{name:'Fly',type:'flying',locked:true},{name:'Dragon Claw',type:'dragon',locked:true},{name:'Blast Burn',type:'fire',locked:true}],
+finalMoves:[{name:'Flamethrower',type:'fire',slot:'STAB (Sp)'},{name:'Fly',type:'flying',slot:'STAB (Phys)'},{name:'Blast Burn',type:'fire',slot:'150pw Nuke (Sp)'},{name:'Dragon Claw',type:'dragon',slot:'Coverage (Sp)'}],
+milestones:[{desc:'Keep Flamethrower',done:true},{desc:'Keep Fly',done:true},{desc:'Lv.44 → Slash (replace Ember)',done:true},{desc:'Blast Burn (Cape Brink tutor) → replace Brick Break',done:true},{desc:'TM02 Dragon Claw (Victory Road) → replace Slash',done:true}],
+gen3:'Flamethrower = Special (Sp.Atk 109). Fly = Physical (Atk 84) — serviceable, not stellar. Dragon Claw is SPECIAL in Gen 3 — scales off that juicy 109 Sp.Atk. Blast Burn is 150 power Special nuke with recharge turn — use as a finisher.',battleBerry:{name:'Charcoal (post-game)',why:'Switch from Lum Berry to Charcoal for E4 rematch. Guarantees Flamethrower/Blast Burn OHKOs on rematch targets like Heracross and bulkier Exeggutor.'}},
+{name:'Jolteon',nick:'PATCH.EXE',dex:'#135',types:['electric'],baseLvl:54,target:70,backup:false,heldItem:{name:"King's Rock",effect:'10% flinch on every hit',loc:'Sevault Canyon (Seven Island) — item ball',obtained:false},
+currentMoves:[{name:'Thunderbolt',type:'electric',locked:true},{name:'Double Kick',type:'fighting',locked:true},{name:'Quick Attack',type:'normal',locked:true},{name:'Thunder Wave',type:'electric',locked:true}],
+finalMoves:[{name:'Thunderbolt',type:'electric',slot:'STAB (Sp)'},{name:'Bite',type:'dark',slot:'Dark = Special in Gen 3!'},{name:'Quick Attack',type:'normal',slot:'Priority (Phys)'},{name:'Thunder Wave',type:'electric',slot:'Utility'}],
+milestones:[{desc:'Keep Quick Attack',done:true},{desc:'Lv.30 → Double Kick (replace Growl)',done:true},{desc:'Lv.42 → Thunder Wave (replace Sand-Attack)',done:true},{desc:'TM24 Thunderbolt (Game Corner) → replace Thunder',done:true},{desc:'Move Relearner (Two Island) → Bite replace Double Kick',done:false,next:true}],
+gen3:'Thunderbolt = Special (Sp.Atk 110) — Jolteon\'s best stat. Bite = DARK TYPE = SPECIAL in Gen 3 — uses 110 Sp.Atk! Much better than Double Kick\'s 65 Atk. Bite also has 30% flinch chance. King\'s Rock stacks for extra flinch.',battleBerry:{name:"King's Rock (post-game)",why:'Jolteon outspeeds almost everything. Every hit has a flinch chance — stacks with Bite\'s innate 30%. Free turn advantage.'}},
+{name:'Lapras',nick:'GLACIER.DB',dex:'#131',types:['water','ice'],baseLvl:52,target:70,backup:false,heldItem:{name:'NeverMeltIce',effect:'+20% Ice moves',loc:'Icefall Cave (Four Island) — item ball on ground',obtained:false},
+currentMoves:[{name:'Confuse Ray',type:'ghost',locked:true},{name:'Thunderbolt',type:'electric',locked:true},{name:'Surf',type:'water',locked:true},{name:'Ice Beam',type:'ice',locked:true}],
+finalMoves:[{name:'Surf',type:'water',slot:'STAB (Sp)'},{name:'Ice Beam',type:'ice',slot:'STAB (Sp)'},{name:'Thunderbolt',type:'electric',slot:'Coverage (Sp)'},{name:'Confuse Ray',type:'ghost',slot:'Utility'}],
+milestones:[{desc:'Keep Confuse Ray',done:true},{desc:'Keep Surf',done:true},{desc:'Lv.31 → Ice Beam (replace Mist)',done:true},{desc:'TM24 Thunderbolt (Game Corner) → replace Body Slam',done:true},{desc:'Get NeverMeltIce from Icefall Cave (Four Island)',done:false,next:true}],
+gen3:'All 3 attacks are Special — perfect. Shell Armor blocks crits. MVP for Lance (4× Ice Beam on Dragonite) and E4 rematch Lance (same). NeverMeltIce pushes Ice Beam damage to guarantee OHKOs on bulkier Lv.66+ Dragonites.',battleBerry:{name:'NeverMeltIce',why:'Ice Beam is the engine of this team\'s win condition. NeverMeltIce ensures OHKO on Lance rematch\'s Dragonites even at higher HP.'}},
+{name:'Snorlax',nick:'AFK.CORE',dex:'#143',types:['normal'],baseLvl:50,target:70,backup:false,heldItem:{name:'Leftovers',effect:'Recover 1/16 max HP per turn',loc:'Route 12 or 16 (hidden where Snorlax slept — use Itemfinder)',obtained:true},
+currentMoves:[{name:'Body Slam',type:'normal',locked:true},{name:'Shadow Ball',type:'ghost',locked:true},{name:'Rest',type:'psychic',locked:true},{name:'Sleep Talk',type:'normal',locked:true}],
+finalMoves:[{name:'Body Slam',type:'normal',slot:'STAB (Phys) 30% para'},{name:'Shadow Ball',type:'ghost',slot:'Coverage (Phys!)'},{name:'Rest',type:'psychic',slot:'Full heal'},{name:'Sleep Talk',type:'normal',slot:'Use while asleep'}],
+milestones:[{desc:'Keep Body Slam',done:true},{desc:'Keep Shadow Ball',done:true},{desc:'Keep Rest',done:true},{desc:'Lv.37 → Sleep Talk (replace Hyper Beam)',done:true}],
+gen3:'KEY INSIGHT: Shadow Ball is PHYSICAL in Gen 3 (Ghost type). Snorlax has 110 Atk — this is why he destroys Agatha. Rest heals to full + cures status. Sleep Talk lets you attack while sleeping. Body Slam has 30% paralysis chance. Snorlax is your unkillable wall.',battleBerry:{name:'Keep Leftovers',why:'Leftovers > any berry on AFK.CORE. Passive 1/16 HP recovery every turn stacks with Rest/Sleep Talk for near-immortality. Don\'t swap this out.'}},
+{name:'Nidoking',nick:'SUDO.EXE',dex:'#034',types:['poison','ground'],baseLvl:50,target:70,backup:false,heldItem:{name:'Quick Claw',effect:'20% chance to move first regardless of Speed',loc:'Safari Zone Rest House',obtained:false},
+currentMoves:[{name:'Earthquake',type:'ground',locked:true},{name:'Dig',type:'ground',locked:true},{name:'Double Kick',type:'fighting',locked:true},{name:'Megahorn',type:'bug',locked:true}],
+finalMoves:[{name:'Earthquake',type:'ground',slot:'STAB (Phys)'},{name:'Sludge Bomb',type:'poison',slot:'STAB (Phys) 90pw'},{name:'Megahorn',type:'bug',slot:'Coverage (Phys)'},{name:'Brick Break',type:'fighting',slot:'Coverage + breaks screens'}],
+milestones:[{desc:'Keep Dig',done:true},{desc:'Keep Double Kick',done:true},{desc:'Lv.43 → Megahorn (replace Fury Attack)',done:true},{desc:'Move Deleter (Fuchsia) → Delete CUT',done:true},{desc:'Gym 8 TM26 Earthquake → empty slot',done:true},{desc:'TM36 Sludge Bomb (Rocket Warehouse 5 Island) → replace Dig',done:false,next:true},{desc:'TM31 Brick Break (Celadon Dept Store) → replace Double Kick',done:false}],
+gen3:'Earthquake + Megahorn both Physical — 102 Atk. Megahorn (Bug, 120 power) one-shots Alakazam and Exeggutor. Sludge Bomb (Poison, 90 power) is straight STAB upgrade over Dig. Brick Break (75 power) beats Double Kick (2×30) AND breaks Reflect/Light Screen.',battleBerry:{name:'Quick Claw',why:'Average Speed. Quick Claw gives Earthquake/Megahorn free turns sometimes — useful for tanks it would otherwise be outsped by.'}},
+{name:'Jynx',nick:'ZYNX',dex:'#124',types:['ice','psychic'],baseLvl:53,target:70,backup:false,heldItem:{name:'TwistedSpoon',effect:'+20% Psychic moves',loc:'Thief from wild Abra (Routes 5–8) or Kadabra',obtained:false},
+currentMoves:[{name:'Lovely Kiss',type:'normal',locked:true},{name:'Ice Beam',type:'ice',locked:true},{name:'Psychic',type:'psychic',locked:true},{name:'Fake Tears',type:'dark',locked:true}],
+finalMoves:[{name:'Psychic',type:'psychic',slot:'STAB (Sp)'},{name:'Ice Beam',type:'ice',slot:'STAB (Sp) 95pw/100%'},{name:'Fake Tears',type:'dark',slot:'-2 Sp.Def'},{name:'Lovely Kiss',type:'normal',slot:'75% Sleep'}],
+milestones:[{desc:'Keep Lovely Kiss',done:true},{desc:'Keep Psychic',done:true},{desc:'Lv.41 → Fake Tears (replace Powder Snow)',done:true},{desc:'TM13 Ice Beam (Celadon Game Corner) → replace Ice Punch',done:true},{desc:'Get TwistedSpoon — Thief from wild Abra',done:false,next:true}],
+gen3:'Psychic + Ice Beam = Special (115 Sp.Atk — highest on team!). Lovely Kiss = best sleep move (75% acc). Fake Tears drops Sp.Def 2 stages — follow with Ice Beam = devastating. TwistedSpoon ensures Bruno Psychic OHKOs even at rematch levels.',battleBerry:{name:'TwistedSpoon',why:'ZYNX is a glass cannon — TwistedSpoon over a berry because she one-shots or dies. Better to guarantee the OHKO than survive one hit.'}}
+];
+
+const BATTLES=[
+{title:'E4 #1 — LORELEI',type:'Ice / Water',loc:'Indigo Plateau',target:'50-55',color:'var(--ice)',
+enemies:[{name:'Dewgong',lvl:52,types:['water','ice'],moves:'Surf, Ice Beam, Hail, Safeguard',item:null},{name:'Cloyster',lvl:51,types:['water','ice'],moves:'Spikes, Dive, Hail, Protect',item:null},{name:'Slowbro',lvl:52,types:['water','psychic'],moves:'Surf, Ice Beam, Amnesia, Yawn',item:null},{name:'Jynx',lvl:54,types:['ice','psychic'],moves:'Double Slap, Ice Punch, Lovely Kiss, Attract',item:null},{name:'Lapras',lvl:54,types:['water','ice'],moves:'Surf, Ice Beam, Body Slam, Confuse Ray',item:'Sitrus Berry'}],
+sweeper:'Jolteon (Thunderbolt)',backup:'Snorlax (Body Slam)',
+danger:'Dewgong leads with Safeguard (blocks status 5 turns) then Hail (chip dmg to non-Ice). Cloyster sets Spikes — every switch-in hurts. Slowbro uses Yawn → MUST switch or sleep next turn, then spams Amnesia (+2 Sp.Def each). Lapras = Confuse Ray + Body Slam (30% para) + Sitrus Berry. Kill FAST.',
+tip:'Thunderbolt OHKOs 4/5 (all Water types). For her Jynx (Ice/Psychic, no Water), switch to Snorlax. Kill Cloyster before Spikes. If Hail is active, your Lapras is immune to its chip. Dewgong has Thick Fat — Fire/Ice moves do reduced damage.',
+trivia:'Lorelei hails from Four Island. In the Pokémon Adventures manga, she was initially an antagonist who joined the Elite Four\'s plot to destroy humanity and build a Pokémon utopia.'},
+{title:'E4 #2 — BRUNO',type:'Fighting / Rock',loc:'Indigo Plateau',target:'50-55',color:'var(--fighting)',
+enemies:[{name:'Onix',lvl:51,types:['rock','ground'],moves:'Rock Tomb, Earthquake, Iron Tail, Roar',item:null},{name:'Hitmonchan',lvl:53,types:['fighting'],moves:'Sky Uppercut, Mach Punch, Rock Tomb, Counter',item:null},{name:'Hitmonlee',lvl:53,types:['fighting'],moves:'Mega Kick, Brick Break, Foresight, Facade',item:null},{name:'Onix',lvl:54,types:['rock','ground'],moves:'Double-Edge, Earthquake, Sand Tomb, Iron Tail',item:null},{name:'Machamp',lvl:56,types:['fighting'],moves:'Cross Chop, Bulk Up, Scary Face, Rock Tomb',item:'Sitrus Berry'}],
+sweeper:'Jynx (Psychic)',backup:'Lapras (Surf for Onix)',
+danger:'Hitmonchan has COUNTER — reflects Physical attacks at 2× damage. Use Psychic (Special) only! Sky Uppercut hits during Fly. Hitmonlee\'s Facade doubles in power if he\'s statused — don\'t burn/paralyze him. Second Onix has Sand Tomb (traps you). Machamp has Bulk Up + Sitrus Berry.',
+tip:'Jynx OHKOs all 3 fighters with Psychic (115 Sp.Atk vs their pitiful Sp.Def). Lapras Surfs both Onix into oblivion. Easiest E4 fight if you play the type matchups.',
+trivia:'Bruno trains with his Pokémon under waterfalls. He\'s the only E4 member to use non-specialist types (Rock/Ground Onix in a Fighting team). His Onix don\'t even have Rock STAB.'},
+{title:'E4 #3 — AGATHA',type:'Ghost / Poison',loc:'Indigo Plateau',target:'50-55',color:'var(--ghost)',
+enemies:[{name:'Gengar #1',lvl:54,types:['ghost','poison'],moves:'Shadow Punch, Confuse Ray, Toxic, Double Team',item:null},{name:'Golbat',lvl:54,types:['poison','flying'],moves:'Confuse Ray, Poison Fang, Air Cutter, Bite',item:null},{name:'Haunter',lvl:53,types:['ghost','poison'],moves:'Hypnosis, Dream Eater, Mean Look, Curse',item:null},{name:'Arbok',lvl:56,types:['poison'],moves:'Sludge Bomb, Bite, Iron Tail, Screech',item:null},{name:'Gengar #2',lvl:58,types:['ghost','poison'],moves:'Shadow Ball, Sludge Bomb, Hypnosis, Nightmare',item:'Sitrus Berry'}],
+sweeper:'Snorlax (Shadow Ball)',backup:'Jynx (Psychic for Arbok/Golbat)',
+danger:'YOUR HARDEST FIGHT. Gengar #1: Double Team + Toxic + Confuse Ray = infuriating evasion stall. Shadow Punch never misses. Hit FAST before DT stacks. HAUNTER IS THE TRAP: Mean Look (can\'t switch) → Curse (costs 50% own HP, you lose 25%/turn — UNCURABLE until battle ends). If locked + cursed, you die in 4 turns. Gengar #2: Hypnosis → Nightmare (lose 25% HP/turn while asleep).',
+tip:'LEAD SNORLAX. Normal type = immune to Ghost moves AND Shadow Punch. Shadow Ball (Physical in Gen 3, 110 Atk) crushes everything. Rest cures Toxic. Sleep Talk attacks through Hypnosis. If Haunter traps you, don\'t panic — just attack. Curse costs it 50% HP too, so it\'s suiciding. Nidoking is Poison-type = immune to Toxic as a backup.',
+trivia:'Agatha was Professor Oak\'s rival. She despises him for choosing research over battling. No Dark-type Pokémon exist in Kanto without trading — that\'s why her Ghost/Poison team is so scary. All her mons are Poison, so Psychic works, but Ghost resists Psychic in Gen 3.'},
+{title:'E4 #4 — LANCE',type:'Dragon / Flying',loc:'Indigo Plateau',target:'50-55',color:'var(--dragon)',
+enemies:[{name:'Gyarados',lvl:56,types:['water','flying'],moves:'Hyper Beam, Dragon Rage, Twister, Bite',item:null},{name:'Dragonair',lvl:54,types:['dragon'],moves:'Hyper Beam, Outrage, Safeguard, Dragon Rage',item:null},{name:'Dragonair',lvl:54,types:['dragon'],moves:'Hyper Beam, Outrage, Safeguard, Thunder Wave',item:null},{name:'Aerodactyl',lvl:58,types:['rock','flying'],moves:'Hyper Beam, Wing Attack, AncientPower, Scary Face',item:null},{name:'Dragonite',lvl:60,types:['dragon','flying'],moves:'Hyper Beam, Outrage, Wing Attack, Safeguard',item:'Sitrus Berry'}],
+sweeper:'Lapras (Ice Beam + Thunderbolt)',backup:'Jolteon (Thunderbolt)',
+danger:'Aerodactyl: base 150 Speed — outspeeds your entire team. Hyper Beam or AncientPower hit hard. Consider Thunder Wave first. One Dragonair has Thunder Wave — paralysis ruins your sweep. Dragonite has 134 Atk — Outrage is a multi-turn rampage that hurts. Kill it before it starts.',
+tip:'Lapras solo sweeps: Thunderbolt OHKOs Gyarados (4× weak). Ice Beam OHKOs both Dragonair. Ice Beam OHKOs Dragonite (4× weak). For Aerodactyl: Surf or Thunderbolt (both SE via Rock/Flying). This is Lapras\'s victory lap.',
+trivia:'Lance calls himself a Dragon Master, but only Dragonite is fully evolved. His Dragonair use Hyper Beam — a Normal move — as their strongest attack. In Gen 3, Dragon Rage always does fixed 40 damage regardless of stats.'},
+{title:'CHAMPION — BLUE',type:'Mixed (Charmander start)',loc:'Indigo Plateau',target:'55+',color:'var(--fire-red)',
+enemies:[{name:'Pidgeot',lvl:59,types:['normal','flying'],moves:'Aerial Ace, Feather Dance, Sand-Attack, Whirlwind',item:null},{name:'Alakazam',lvl:57,types:['psychic'],moves:'Psychic, Future Sight, Reflect, Recover',item:null},{name:'Rhydon',lvl:59,types:['ground','rock'],moves:'Earthquake, Rock Tomb, Scary Face, Take Down',item:null},{name:'Arcanine',lvl:59,types:['fire'],moves:'Flamethrower, Bite, ExtremeSpeed, Roar',item:null},{name:'Exeggutor',lvl:61,types:['grass','psychic'],moves:'Giga Drain, Egg Bomb, Sleep Powder, Light Screen',item:null},{name:'Blastoise',lvl:63,types:['water'],moves:'Rain Dance, Hydro Pump, Skull Bash, Bite',item:'Sitrus Berry'}],
+sweeper:'Team effort',backup:'Nidoking (EQ / Megahorn)',
+danger:'Blue uses Full Restores when Pokémon drop below ~25% HP. Pidgeot stalls: Sand-Attack + Feather Dance (-2 Atk) + Whirlwind (forced switch). Alakazam has Recover + Reflect — must 2HKO or you\'re stuck forever. Exeggutor: Sleep Powder (75% acc) then Light Screen (-50% Special dmg). Blastoise: Rain Dance → Hydro Pump becomes catastrophic. Rain also makes Thunder 100% accurate — USE THIS.',
+tip:'Switch aggressively. Bring 5+ Full Heals for Sleep Powder. Don\'t waste PP trying to overpower bad matchups — Blue WILL Full Restore. When Blastoise sets Rain Dance, switch to Jolteon — Thunder becomes 100% accurate in rain and OHKOs.',
+trivia:'Blue is Oak\'s grandson and your childhood rival. He beat the E4 minutes before you arrived — you\'re dethroning the freshly crowned Champion. His Blastoise at Lv.63 is the highest-level Pokémon in the first-time E4 gauntlet.',
+isChampion:true,
+matchups:[
+{vs:'Pidgeot',answer:'Jolteon (Thunderbolt)',warn:'Ignore the stalling — Special moves bypass Feather Dance (Atk debuff)'},
+{vs:'Alakazam',answer:'Snorlax (Shadow Ball) / Nidoking (Megahorn)',warn:'Recover + Reflect = must 2HKO. Megahorn (Bug, 120 pow) OHKOs'},
+{vs:'Rhydon',answer:'Lapras (Surf)',warn:'4× Water weak. OHKOs guaranteed. Don\'t leave Ground-weak mons in'},
+{vs:'Arcanine',answer:'Lapras (Surf) / Nidoking (Earthquake)',warn:'ExtremeSpeed = +1 priority. Roar forces switch. Intimidate cuts Atk'},
+{vs:'Exeggutor',answer:'Charizard (Flamethrower) / Jynx (Ice Beam)',warn:'Sleep Powder first! Light Screen halves Special — Flamethrower still OHKOs'},
+{vs:'Blastoise',answer:'Jolteon (Thunderbolt or Thunder)',warn:'Rain Dance → Thunder = 100% acc OHKO. Abuse the rain he sets up!'}
+]}
+];
+
+let teamState=JSON.parse(JSON.stringify(BASE_TEAM));
+try{const s=sessionStorage.getItem('fr-lvls');if(s){const l=JSON.parse(s);teamState.forEach(p=>{if(l[p.name]!==undefined)p.baseLvl=l[p.name]});}}catch(e){}
+function saveLvls(){try{const l={};teamState.forEach(p=>l[p.name]=p.baseLvl);sessionStorage.setItem('fr-lvls',JSON.stringify(l));}catch(e){}}
+function pct(c,t){return Math.min(100,Math.round(c/t*100))}
+function barCol(p){return p>=100?'var(--green)':p>=70?'var(--amber)':p>=40?'var(--ember)':'var(--fire-red)'}
+function nextMs(p){const m=p.milestones.find(m=>m.next);if(m)return m.desc;const u=p.milestones.find(m=>!m.done);return u?u.desc:'Build complete!'}
+function autoMs(i){const p=teamState[i],l=p.baseLvl;p.milestones.forEach(m=>{const mt=m.desc.match(/Lv\.(\d+)/);if(mt&&parseInt(mt[1])<=l&&!m.desc.includes('TM')&&!m.desc.includes('Move Deleter')&&!m.desc.includes('Gym 8')){m.done=true;m.next=false}});let f=false;p.milestones.forEach(m=>{if(!m.done&&!f){m.next=true;f=true}else if(!m.done)m.next=false})}
+function getE4(name){const r=[];BATTLES.forEach(b=>{if(b.sweeper.includes(name))r.push(`<strong style="color:var(--green)">PRIMARY</strong> vs ${b.title}`);else if(b.backup.includes(name))r.push(`<strong style="color:var(--amber)">BACKUP</strong> vs ${b.title}`);if(b.matchups)b.matchups.forEach(m=>{if(m.answer.includes(name))r.push(`<strong style="color:var(--blue)">COUNTER</strong> → Champion's ${m.vs}`)})});return r.length?r.join('<br>'):'<span style="color:var(--text-muted)">General support</span>'}
+
+function renderTeam(){let h='<div class="team-grid">';teamState.forEach((p,i)=>{const pc=pct(p.baseLvl,p.target),bc=barCol(pc);h+=`<div class="pokemon-card ${p.backup?'backup':''}" style="--tc1:${TC[p.types[0]]};--tc2:${TC[p.types[1]||p.types[0]]}" onclick="showDetail(${i})">${p.backup?'<span class="backup-tag">BACKUP</span>':''}<div class="card-top"><span class="poke-name">${p.nick||p.name}</span><span class="poke-level">Lv.${p.baseLvl}</span></div>${p.nick?`<div style="font-size:10px;color:var(--text-muted);margin-bottom:4px">${p.name}</div>`:''}<div style="display:flex;align-items:center;gap:8px;margin-bottom:12px"><span class="dex-num">${p.dex}</span><div class="poke-types" style="margin-bottom:0">${p.types.map(tb).join('')}</div></div><div class="level-bar-container"><div class="level-bar-label"><span>→ Lv.${p.target}</span><span>${pc}%</span></div><div class="level-bar"><div class="level-bar-fill" style="width:${pc}%;background:${bc}"></div></div></div><div class="moves-compact">${p.currentMoves.map(m=>`<div class="move-pill ${m.locked?'locked':'pending'}">${m.name}</div>`).join('')}</div><div style="margin-top:10px;font-size:11px;color:var(--text-muted)">Next: <span style="color:var(--amber)">${nextMs(p)}</span></div></div>`});h+='</div>';document.getElementById('view-team').innerHTML=h}
+
+function showDetail(idx){const p=teamState[idx],pc=pct(p.baseLvl,p.target),bc=barCol(pc);document.getElementById('view-team').classList.remove('active');const d=document.getElementById('view-detail');d.classList.add('active');d.innerHTML=`<div class="detail-back" onclick="hideDetail()">◀ Back to Team</div><div class="detail-header"><div><div class="detail-name">${p.nick||p.name} ${p.backup?'<span style="font-size:11px;color:var(--text-muted);font-family:Chakra Petch">(BACKUP)</span>':''}</div>${p.nick?`<div style="font-size:12px;color:var(--text-dim);margin-top:4px">${p.name}</div>`:''}<div style="display:flex;align-items:center;gap:8px;margin-top:8px"><span class="dex-num">${p.dex}</span><div class="poke-types" style="margin-bottom:0">${p.types.map(tb).join('')}</div></div></div><div class="detail-level-edit"><label>LV.</label><input type="number" id="lvlInput" value="${p.baseLvl}" min="1" max="100"><button onclick="updateLevel(${idx})">UPDATE</button></div></div><div class="level-bar-container"><div class="level-bar-label"><span>→ Lv.${p.target}</span><span>${pc}%</span></div><div class="level-bar"><div class="level-bar-fill" style="width:${pc}%;background:${bc}"></div></div></div><div class="section-title">CURRENT MOVESET</div><table class="moveset-table"><tr><th>Move</th><th>Type</th><th>Status</th></tr>${p.currentMoves.map(m=>`<tr><td style="font-weight:600">${m.name}</td><td>${tb(m.type)}</td><td style="color:${m.locked?'var(--green)':'var(--amber)'};font-size:12px">${m.locked?'✔ LOCKED':'⏳ TEMP'}</td></tr>`).join('')}</table><div class="section-title">TARGET MOVESET (FINAL)</div><table class="moveset-table"><tr><th>Move</th><th>Type</th><th>Role</th></tr>${p.finalMoves.map(m=>`<tr><td style="font-weight:600">${m.name}</td><td>${tb(m.type)}</td><td style="color:var(--text-dim);font-size:12px">${m.slot}</td></tr>`).join('')}</table><div class="section-title">EXECUTION PATH</div><ul class="milestone-list">${p.milestones.map(m=>`<li class="${m.done?'done':m.next?'next':'future'}"><span style="font-size:14px;flex-shrink:0">${m.done?'✅':m.next?'🔶':'⬜'}</span>${m.desc}</li>`).join('')}</ul><div class="section-title">HELD ITEM STRATEGY</div>${p.heldItem?`<div style="padding:12px 16px;background:var(--bg-card);border:1px solid ${p.heldItem.obtained?'var(--green)':'var(--border)'};border-radius:8px;display:flex;align-items:flex-start;gap:12px;margin-bottom:8px"><div style="font-size:20px">${p.heldItem.obtained?'✅':'📦'}</div><div><div style="font-weight:700;font-size:13px;color:${p.heldItem.obtained?'var(--green)':'var(--amber)'}">Suggested: ${p.heldItem.name} <span style="font-size:10px;font-weight:400;color:var(--text-muted)">${p.heldItem.obtained?'OBTAINED':'NOT YET'}</span></div><div style="font-size:12px;color:var(--text-dim);margin-top:2px">${p.heldItem.effect}</div><div style="font-size:11px;color:var(--text-muted);margin-top:4px">How to get: ${p.heldItem.loc}</div></div></div>`:''}\
+${p.battleBerry?`<div style="padding:12px 16px;background:rgba(76,175,80,0.06);border:1px solid rgba(76,175,80,0.2);border-radius:8px;display:flex;align-items:flex-start;gap:12px;margin-bottom:8px"><div style="font-size:20px">🫐</div><div><div style="font-weight:700;font-size:13px;color:var(--green)">E4 Berry: ${p.battleBerry.name}</div><div style="font-size:12px;color:var(--text-dim);margin-top:2px">${p.battleBerry.why}</div></div></div>`:''}\
+<div style="padding:12px 16px;background:rgba(255,171,0,0.06);border:1px solid rgba(255,171,0,0.2);border-radius:8px;display:flex;align-items:flex-start;gap:12px"><div style="font-size:20px">💰</div><div><div style="font-weight:700;font-size:13px;color:var(--amber)">Grinding: Amulet Coin</div><div style="font-size:12px;color:var(--text-dim);margin-top:2px">Give Amulet Coin to whoever leads trainer battles for double prize money. During E4, give Amulet Coin to GLACIER.DB (fights in 5/7 battles) for max payout.</div></div></div>\
+${p.gen3?`<div class="section-title">GEN 3 MECHANICS</div><div class="mechanics-card"><p>${p.gen3}</p></div>`:''}<div class="section-title">E4 ASSIGNMENTS</div><div style="font-size:13px;line-height:1.8;color:var(--text-dim)">${getE4(p.name)}</div>`}
+function hideDetail(){document.getElementById('view-detail').classList.remove('active');document.getElementById('view-team').classList.add('active');renderTeam()}
+function updateLevel(idx){const v=parseInt(document.getElementById('lvlInput').value);if(v>=1&&v<=100){teamState[idx].baseLvl=v;autoMs(idx);saveLvls();showDetail(idx);renderTracker()}}
+
+function renderBattles(){
+const rematch=[
+{title:'E4R #1 — LORELEI',type:'Ice/Water',color:'var(--ice)',target:'65-70',
+enemies:[{name:'Dewgong',lvl:64,types:['water','ice'],moves:'Surf, Ice Beam, Signal Beam, Hail',item:null},{name:'Cloyster',lvl:63,types:['water','ice'],moves:'Spikes, Surf, Hail, Protect',item:null},{name:'Piloswine',lvl:63,types:['ice','ground'],moves:'Earthquake, Ice Beam, Rock Slide, Double-Edge',item:null},{name:'Jynx',lvl:66,types:['ice','psychic'],moves:'Ice Beam, Psychic, Lovely Kiss, Attract',item:null},{name:'Lapras',lvl:66,types:['water','ice'],moves:'Surf, Ice Beam, Body Slam, Confuse Ray',item:'Sitrus Berry'}],
+sweeper:'PATCH.EXE (Thunderbolt)',backup:'GLACIER.DB (Surf for Piloswine)',
+danger:'Piloswine is NEW — Ice/Ground, immune to Electric. Switch to GLACIER.DB (Surf) or ZYNX (Ice Beam). Jynx now has Psychic — don\'t leave SUDO.EXE in.',
+tip:'Same core strategy. Thunderbolt 4/5 Water types. Piloswine is the only curveball.'},
+{title:'E4R #2 — BRUNO',type:'Fighting/Steel',color:'var(--fighting)',target:'65-70',
+enemies:[{name:'Steelix',lvl:65,types:['steel','ground'],moves:'Earthquake, Iron Tail, Rock Tomb, Sandstorm',item:null},{name:'Hitmonchan',lvl:65,types:['fighting'],moves:'Sky Uppercut, Mach Punch, Rock Tomb, Counter',item:null},{name:'Hitmonlee',lvl:65,types:['fighting'],moves:'Mega Kick, Brick Break, Foresight, Facade',item:null},{name:'Steelix',lvl:66,types:['steel','ground'],moves:'Earthquake, Iron Tail, Dragon Breath, Sandstorm',item:null},{name:'Machamp',lvl:68,types:['fighting'],moves:'Cross Chop, Bulk Up, Scary Face, Rock Tomb',item:'Sitrus Berry'}],
+sweeper:'ZYNX (Psychic for fighters)',backup:'GLACIER.DB (Surf for 2× Steelix)',
+danger:'2× Steelix replace Onix — much bulkier with high Defense. But Sp.Def is still weak. Surf/Flamethrower wreck them. Machamp now Lv.68 with Bulk Up.',
+tip:'ZYNX Psychic OHKOs fighters. GLACIER.DB Surf handles both Steelix. LPG Flamethrower also works on Steelix (4× weak to Fire... wait, Steel/Ground is 2× Fire — still effective).'},
+{title:'E4R #3 — AGATHA',type:'Ghost/Poison',color:'var(--ghost)',target:'66-70',
+enemies:[{name:'Gengar',lvl:66,types:['ghost','poison'],moves:'Shadow Ball, Sludge Bomb, Confuse Ray, Toxic',item:null},{name:'Crobat',lvl:66,types:['poison','flying'],moves:'Air Slash, Sludge Bomb, Confuse Ray, Bite',item:null},{name:'Misdreavus',lvl:65,types:['ghost'],moves:'Shadow Ball, Thunderbolt, Psychic, Attract',item:null},{name:'Arbok',lvl:68,types:['poison'],moves:'Sludge Bomb, Bite, Iron Tail, Screech',item:null},{name:'Gengar',lvl:70,types:['ghost','poison'],moves:'Shadow Ball, Sludge Bomb, Hypnosis, Nightmare',item:'Sitrus Berry'}],
+sweeper:'AFK.CORE (Shadow Ball)',backup:'PATCH.EXE (Bite — Dark is Special in Gen 3!)',
+danger:'Crobat is NEW and FAST (base 130 Speed). Misdreavus is NEW — pure Ghost, not Poison. Has Thunderbolt + Psychic coverage. Gengars hit harder at Lv.66-70.',
+tip:'AFK.CORE anchors again. Rest/Sleep Talk through status. PATCH.EXE with Bite (Dark = Special, 110 Sp.Atk) is great backup vs Ghosts. Bite also flinches 30%.'},
+{title:'E4R #4 — LANCE',type:'Dragon/Flying',color:'var(--dragon)',target:'68-72',
+enemies:[{name:'Gyarados',lvl:68,types:['water','flying'],moves:'Hyper Beam, Dragon Dance, Earthquake, Bite',item:null},{name:'Dragonite',lvl:66,types:['dragon','flying'],moves:'Hyper Beam, Outrage, Earthquake, Wing Attack',item:null},{name:'Kingdra',lvl:66,types:['water','dragon'],moves:'Surf, Hyper Beam, Dragon Dance, Smokescreen',item:null},{name:'Aerodactyl',lvl:70,types:['rock','flying'],moves:'Hyper Beam, Earthquake, Wing Attack, AncientPower',item:null},{name:'Dragonite',lvl:72,types:['dragon','flying'],moves:'Hyper Beam, Outrage, Thunderbolt, Wing Attack',item:'Sitrus Berry'}],
+sweeper:'GLACIER.DB (Ice Beam + Thunderbolt)',backup:'AFK.CORE (Body Slam for Kingdra)',
+danger:'Kingdra is NEW — Water/Dragon takes NEUTRAL from Ice Beam. Can\'t OHKO it with Ice. Use AFK.CORE Body Slam to wear it down. Gyarados now has Dragon Dance — kill it fast before it sets up. Dragonite #2 has Thunderbolt — dangerous for GLACIER.DB.',
+tip:'GLACIER.DB still handles most of this. Ice Beam for Dragonites (4×). Thunderbolt for Gyarados. For Kingdra, switch to AFK.CORE and tank it with Body Slam. Aerodactyl: Surf.'},
+{title:'CHAMPION REMATCH — BLUE',type:'Mixed',color:'var(--fire-red)',target:'72-75',
+enemies:[{name:'Heracross',lvl:72,types:['bug','fighting'],moves:'Megahorn, Brick Break, Earthquake, Rock Tomb',item:null},{name:'Alakazam',lvl:73,types:['psychic'],moves:'Psychic, Shadow Ball, Calm Mind, Recover',item:null},{name:'Tyranitar',lvl:72,types:['rock','dark'],moves:'Crunch, Earthquake, Rock Slide, Aerial Ace',item:null},{name:'Exeggutor',lvl:73,types:['grass','psychic'],moves:'Giga Drain, Psychic, Sleep Powder, Light Screen',item:null},{name:'Arcanine',lvl:73,types:['fire'],moves:'Flamethrower, ExtremeSpeed, Aerial Ace, Roar',item:null},{name:'Blastoise',lvl:75,types:['water'],moves:'Hydro Pump, Ice Beam, Rain Dance, Earthquake',item:'Sitrus Berry'}],
+sweeper:'Team effort',backup:'Everyone has a job',
+danger:'Completely different team from first run. Heracross + Tyranitar are NEW. Tyranitar has Sand Stream (auto-Sandstorm = chip damage). Alakazam now has Calm Mind + Shadow Ball — much scarier. Blastoise Lv.75 with Ice Beam + Earthquake covers more threats.',
+tip:'Match by match below.',
+matchups:[
+{vs:'Heracross',answer:'LPG (Flamethrower/Fly)',warn:'Bug/Fighting — Fire and Flying both SE. Easy OHKO.'},
+{vs:'Alakazam',answer:'AFK.CORE (Shadow Ball) or SUDO.EXE (Megahorn)',warn:'Now has Calm Mind + Shadow Ball. Megahorn OHKOs before it sets up. Shadow Ball from AFK.CORE also works.'},
+{vs:'Tyranitar',answer:'SUDO.EXE (Earthquake/Brick Break) or GLACIER.DB (Surf)',warn:'Rock/Dark. 4× weak to Fighting (Brick Break). Earthquake also SE. Sand Stream does chip damage to your whole team.'},
+{vs:'Exeggutor',answer:'LPG (Flamethrower)',warn:'Still has Sleep Powder. Charcoal on LPG guarantees OHKO through Light Screen — faster than it can set up.'},
+{vs:'Arcanine',answer:'GLACIER.DB (Surf)',warn:'ExtremeSpeed is +1 priority. Roar forces switch.'},
+{vs:'Blastoise',answer:'PATCH.EXE (Thunderbolt)',warn:'Lv.75. Now has Ice Beam (hits SUDO.EXE) + Earthquake (hits PATCH.EXE). Rain Dance → Hydro Pump is devastating. Kill fast.'}
+]}
+];
+let h=`<div style="margin-bottom:16px"><h2 style="font-family:'Press Start 2P',monospace;font-size:13px;color:var(--fire-red)">🏆 THE ORIGINAL RUN — E4 BATTLE LOG</h2><div style="font-size:12px;color:var(--text-dim);margin-top:6px">How it actually went down. Trainer ZULU, Champion of Kanto. The memory preserved.</div></div>
+<div style="padding:16px;background:rgba(229,57,53,0.06);border:1px solid rgba(229,57,53,0.3);border-radius:8px;margin-bottom:20px">
+<div style="font-family:'Press Start 2P',monospace;font-size:12px;color:var(--fire-red);margin-bottom:10px">🏆 TRAINER ZULU — CHAMPION OF KANTO</div>
+<div style="font-size:13px;color:var(--text-dim);line-height:1.9">
+<strong style="color:var(--text)">E1 — Lorelei:</strong> Clean sweep. PATCH.EXE's Thunderbolt demolished 4/5. No items used.<br>
+<strong style="color:var(--text)">E2 — Bruno:</strong> Textbook. ZYNX Psychic ×3 for fighters. GLACIER.DB Surf ×1 for Onix. Ice Beam ×1. Done.<br>
+<strong style="color:var(--fire-red)">E3 — Agatha:</strong> The hard one. AFK.CORE tanked the entire Ghost army — 6 Sleep Talks, 4 Shadow Balls. Haunter tried to trap with Mean Look. LPG came in clutch with <strong style="color:var(--fire)">Blast Burn</strong> to finish it. The only fight that tested us.<br>
+<strong style="color:var(--text)">E4 — Lance:</strong> GLACIER.DB solo sweep. Ice Beam erased every dragon. Thunderbolt for Gyarados. Clean.<br>
+<strong style="color:var(--fire-red)">Champion — Blue:</strong> Never let Alakazam use a Full Restore. SUDO.EXE's Megahorn deleted it instantly. LPG's <strong style="color:var(--fire)">Blast Burn</strong> one-shot Exeggutor. PATCH.EXE handled Pidgeot and Blastoise. GLACIER.DB cleaned up Rhydon and Arcanine. Dominant.
+</div>
+<div style="margin-top:10px;font-size:11px;color:var(--text-muted)">Final levels: LPG 51 · GLACIER.DB 52 · PATCH.EXE 54 · SUDO.EXE 50 · ZYNX 53 · AFK.CORE 50 &nbsp;|&nbsp; Pokédex: 94 &nbsp;|&nbsp; ~47hrs</div>
+</div>`;
+BATTLES.forEach(b=>{h+=`<div class="battle-card" style="padding:0;overflow:hidden"><div style="position:absolute;top:0;left:0;right:0;height:3px;background:${b.color}"></div><div class="collapse-toggle" onclick="this.classList.toggle('open');this.nextElementSibling.classList.toggle('open')" style="padding:16px 20px;display:flex;align-items:center;justify-content:space-between"><div><h3 style="font-family:'Press Start 2P',monospace;font-size:11px;margin-bottom:3px">${b.title}</h3><div style="font-size:11px;color:var(--text-dim)">${b.type} — ${b.loc} &nbsp;<span style="color:var(--amber);font-size:10px">TARGET: ${b.target}</span></div></div><span class="arrow" style="color:var(--text-muted);font-size:14px;transition:transform 0.2s">▶</span></div><div class="collapse-body" style="padding:0 20px 20px"><table class="enemy-team-table"><tr><th>Pokémon</th><th>Lv</th><th>Moves</th><th>Item</th></tr>${b.enemies.map(e=>`<tr><td class="mn">${e.name}<br>${e.types.map(t=>`<span class="type-badge" style="background:${TC[t]}">${t}</span>`).join(' ')}</td><td>${e.lvl}</td><td class="mm">${e.moves}</td><td class="mi">${e.item||'—'}</td></tr>`).join('')}</table><div class="strat-row"><div class="strat-item"><div class="strat-label">Primary Sweeper</div><div class="strat-value" style="color:var(--green)">${b.sweeper}</div></div><div class="strat-item"><div class="strat-label">Backup</div><div class="strat-value" style="color:var(--amber)">${b.backup}</div></div></div>${b.danger?`<div class="danger-box"><strong>⚠ DANGER:</strong> ${b.danger}</div>`:''}${b.tip?`<div class="tip-box"><strong>💡 TIP:</strong> ${b.tip}</div>`:''}${b.trivia?`<div class="trivia-box"><strong>📖</strong> ${b.trivia}</div>`:''}${b.matchups?`<div class="section-title" style="margin-top:16px">MATCHUP GRID</div><div class="matchup-grid">${b.matchups.map(m=>`<div class="matchup-item"><div class="matchup-vs">vs ${m.vs}</div><div class="matchup-answer">${m.answer}</div>${m.warn?`<div class="matchup-warn">⚠ ${m.warn}</div>`:''}</div>`).join('')}</div>`:''}</div></div>`});
+document.getElementById('view-battles').innerHTML=h}
+
+function renderRematch(){
+const rematch=[
+{title:'E4R #1 — LORELEI',type:'Ice/Water',color:'var(--ice)',target:'65-70',
+enemies:[{name:'Dewgong',lvl:64,types:['water','ice'],moves:'Surf, Ice Beam, Signal Beam, Hail',item:null},{name:'Cloyster',lvl:63,types:['water','ice'],moves:'Spikes, Surf, Hail, Protect',item:null},{name:'Piloswine',lvl:63,types:['ice','ground'],moves:'Earthquake, Ice Beam, Rock Slide, Double-Edge',item:null},{name:'Jynx',lvl:66,types:['ice','psychic'],moves:'Ice Beam, Psychic, Lovely Kiss, Attract',item:null},{name:'Lapras',lvl:66,types:['water','ice'],moves:'Surf, Ice Beam, Body Slam, Confuse Ray',item:'Sitrus Berry'}],
+sweeper:'PATCH.EXE (Thunderbolt)',backup:'GLACIER.DB (Surf for Piloswine)',
+danger:'Piloswine is NEW — Ice/Ground, immune to Electric. Switch to GLACIER.DB (Surf) or ZYNX (Ice Beam). Jynx now has Psychic — don\'t leave SUDO.EXE in.',
+tip:'Same core strategy. Thunderbolt 4/5 Water types. Piloswine is the only curveball. Kill Cloyster before Spikes stack.'},
+{title:'E4R #2 — BRUNO',type:'Fighting/Steel',color:'var(--fighting)',target:'65-70',
+enemies:[{name:'Steelix',lvl:65,types:['steel','ground'],moves:'Earthquake, Iron Tail, Rock Tomb, Sandstorm',item:null},{name:'Hitmonchan',lvl:65,types:['fighting'],moves:'Sky Uppercut, Mach Punch, Rock Tomb, Counter',item:null},{name:'Hitmonlee',lvl:65,types:['fighting'],moves:'Mega Kick, Brick Break, Foresight, Facade',item:null},{name:'Steelix',lvl:66,types:['steel','ground'],moves:'Earthquake, Iron Tail, Dragon Breath, Sandstorm',item:null},{name:'Machamp',lvl:68,types:['fighting'],moves:'Cross Chop, Bulk Up, Scary Face, Rock Tomb',item:'Sitrus Berry'}],
+sweeper:'ZYNX (Psychic for fighters)',backup:'GLACIER.DB (Surf for 2× Steelix)',
+danger:'2× Steelix replace Onix — much bulkier. But Sp.Def is still poor. Machamp now Lv.68 with Bulk Up — kill before it stacks.',
+tip:'ZYNX Psychic OHKOs fighters. GLACIER.DB Surf handles both Steelix. LPG Flamethrower also works on Steelix (2× Fire vs Steel/Ground).'},
+{title:'E4R #3 — AGATHA',type:'Ghost/Poison',color:'var(--ghost)',target:'66-70',
+enemies:[{name:'Gengar',lvl:66,types:['ghost','poison'],moves:'Shadow Ball, Sludge Bomb, Confuse Ray, Toxic',item:null},{name:'Crobat',lvl:66,types:['poison','flying'],moves:'Air Slash, Sludge Bomb, Confuse Ray, Bite',item:null},{name:'Misdreavus',lvl:65,types:['ghost'],moves:'Shadow Ball, Thunderbolt, Psychic, Attract',item:null},{name:'Arbok',lvl:68,types:['poison'],moves:'Sludge Bomb, Bite, Iron Tail, Screech',item:null},{name:'Gengar',lvl:70,types:['ghost','poison'],moves:'Shadow Ball, Sludge Bomb, Hypnosis, Nightmare',item:'Sitrus Berry'}],
+sweeper:'AFK.CORE (Shadow Ball)',backup:'PATCH.EXE (Bite — Dark is Special in Gen 3!)',
+danger:'Crobat is NEW and FAST (base 130 Speed). Misdreavus is NEW — pure Ghost, has Thunderbolt + Psychic. Gengars hit harder at Lv.66-70.',
+tip:'AFK.CORE anchors again. Rest/Sleep Talk through status. PATCH.EXE with Bite (Dark = Special, 110 Sp.Atk) is great backup vs Ghosts. Bite also flinches 30%.'},
+{title:'E4R #4 — LANCE',type:'Dragon/Flying',color:'var(--dragon)',target:'68-72',
+enemies:[{name:'Gyarados',lvl:68,types:['water','flying'],moves:'Hyper Beam, Dragon Dance, Earthquake, Bite',item:null},{name:'Dragonite',lvl:66,types:['dragon','flying'],moves:'Hyper Beam, Outrage, Earthquake, Wing Attack',item:null},{name:'Kingdra',lvl:66,types:['water','dragon'],moves:'Surf, Hyper Beam, Dragon Dance, Smokescreen',item:null},{name:'Aerodactyl',lvl:70,types:['rock','flying'],moves:'Hyper Beam, Earthquake, Wing Attack, AncientPower',item:null},{name:'Dragonite',lvl:72,types:['dragon','flying'],moves:'Hyper Beam, Outrage, Thunderbolt, Wing Attack',item:'Sitrus Berry'}],
+sweeper:'GLACIER.DB (Ice Beam + Thunderbolt)',backup:'AFK.CORE (Body Slam for Kingdra)',
+danger:'Kingdra is NEW — Water/Dragon takes NEUTRAL from Ice Beam. Cannot OHKO with Ice. Use AFK.CORE Body Slam. Gyarados now has Dragon Dance — kill fast before setup. Dragonite #2 has Thunderbolt — dangerous for GLACIER.DB.',
+tip:'GLACIER.DB handles most. Ice Beam for Dragonites (4×). Thunderbolt for Gyarados. Switch to AFK.CORE for Kingdra. Aerodactyl: Surf.'},
+{title:'CHAMPION REMATCH — BLUE',type:'Mixed',color:'var(--fire-red)',target:'72-75',
+enemies:[{name:'Heracross',lvl:72,types:['bug','fighting'],moves:'Megahorn, Brick Break, Earthquake, Rock Tomb',item:null},{name:'Alakazam',lvl:73,types:['psychic'],moves:'Psychic, Shadow Ball, Calm Mind, Recover',item:null},{name:'Tyranitar',lvl:72,types:['rock','dark'],moves:'Crunch, Earthquake, Rock Slide, Aerial Ace',item:null},{name:'Exeggutor',lvl:73,types:['grass','psychic'],moves:'Giga Drain, Psychic, Sleep Powder, Light Screen',item:null},{name:'Arcanine',lvl:73,types:['fire'],moves:'Flamethrower, ExtremeSpeed, Aerial Ace, Roar',item:null},{name:'Blastoise',lvl:75,types:['water'],moves:'Hydro Pump, Ice Beam, Rain Dance, Earthquake',item:'Sitrus Berry'}],
+sweeper:'Team effort',backup:'Everyone has a job',
+danger:'Completely different team. Heracross + Tyranitar are NEW. Tyranitar has Sand Stream (auto-Sandstorm = chip every turn). Alakazam now has Calm Mind + Shadow Ball. Blastoise Lv.75 with Ice Beam + Earthquake.',
+tip:'Match by match below.',
+matchups:[
+{vs:'Heracross',answer:'LPG (Flamethrower/Fly)',warn:'Bug/Fighting — Fire and Flying both SE. Easy OHKO.'},
+{vs:'Alakazam',answer:'AFK.CORE (Shadow Ball) or SUDO.EXE (Megahorn)',warn:'Now has Calm Mind + Shadow Ball. Megahorn OHKOs before it sets up.'},
+{vs:'Tyranitar',answer:'SUDO.EXE (Earthquake/Brick Break) or GLACIER.DB (Surf)',warn:'Rock/Dark. 4× weak to Fighting (Brick Break). Sand Stream chips your team.'},
+{vs:'Exeggutor',answer:'LPG (Flamethrower)',warn:'Still has Sleep Powder. Charcoal on LPG guarantees OHKO through Light Screen.'},
+{vs:'Arcanine',answer:'GLACIER.DB (Surf)',warn:'ExtremeSpeed is +1 priority. Kill fast.'},
+{vs:'Blastoise',answer:'PATCH.EXE (Thunderbolt)',warn:'Lv.75. Rain Dance → Hydro Pump is catastrophic. Also has Ice Beam + Earthquake. Kill immediately.'}
+]}
+];
+let h='<div style="margin-bottom:16px"><h2 style="font-family:\'Press Start 2P\',monospace;font-size:13px;color:var(--fire-red)">E4 REMATCH — POST-GAME</h2><div style="font-size:12px;color:var(--text-dim);margin-top:6px">After completing the Sevii Islands quest (Ruby + Sapphire for Celio), the E4 returns with upgraded teams (Lv.64-75). New Pokémon added. Target: 65-70 before attempting.</div></div><div class="danger-box" style="margin-bottom:16px"><strong>⚠ DO NOT attempt until Lv.65+ across the board.</strong> Complete Sevii 4-7 first — the Rocket Warehouse story must be done to unlock rematch.</div>';
+rematch.forEach(b=>{h+=`<div class="battle-card" style="padding:0;overflow:hidden"><div style="position:absolute;top:0;left:0;right:0;height:3px;background:${b.color}"></div><div class="collapse-toggle" onclick="this.classList.toggle('open');this.nextElementSibling.classList.toggle('open')" style="padding:16px 20px;display:flex;align-items:center;justify-content:space-between"><div><h3 style="font-family:'Press Start 2P',monospace;font-size:11px;margin-bottom:3px">${b.title}</h3><div style="font-size:11px;color:var(--text-dim)">${b.type} — Indigo Plateau &nbsp;<span style="color:var(--amber);font-size:10px">TARGET: ${b.target}</span></div></div><span class="arrow" style="color:var(--text-muted);font-size:14px;transition:transform 0.2s">▶</span></div><div class="collapse-body" style="padding:0 20px 20px"><table class="enemy-team-table"><tr><th>Pokémon</th><th>Lv</th><th>Moves</th><th>Item</th></tr>${b.enemies.map(e=>`<tr><td class="mn">${e.name}<br>${e.types.map(t=>`<span class="type-badge" style="background:${TC[t]}">${t}</span>`).join(' ')}</td><td>${e.lvl}</td><td class="mm">${e.moves}</td><td class="mi">${e.item||'—'}</td></tr>`).join('')}</table><div class="strat-row"><div class="strat-item"><div class="strat-label">Primary Sweeper</div><div class="strat-value" style="color:var(--green)">${b.sweeper}</div></div><div class="strat-item"><div class="strat-label">Backup</div><div class="strat-value" style="color:var(--amber)">${b.backup}</div></div></div>${b.danger?`<div class="danger-box"><strong>⚠ DANGER:</strong> ${b.danger}</div>`:''}${b.tip?`<div class="tip-box"><strong>💡 TIP:</strong> ${b.tip}</div>`:''}${b.matchups?`<div class="section-title" style="margin-top:16px">MATCHUP GRID</div><div class="matchup-grid">${b.matchups.map(m=>`<div class="matchup-item"><div class="matchup-vs">vs ${m.vs}</div><div class="matchup-answer">${m.answer}</div>${m.warn?`<div class="matchup-warn">⚠ ${m.warn}</div>`:''}</div>`).join('')}</div>`:''}</div></div>`});
+document.getElementById('view-rematch').innerHTML=h}
+
+function renderGrind(){document.getElementById('view-grind').innerHTML=`
+<div class="section-title">POST-GAME PRIORITY ORDER</div>
+<div class="tac-note"><strong>Do these in order:</strong> 1) Moveset upgrades → 2) Held items → 3) Sevii 4-7 (see Sevii tab) → 4) Grind to 65-70 → 5) E4 Rematch</div>
+
+<div class="battle-card">
+<div class="collapse-toggle" onclick="this.classList.toggle('open');this.nextElementSibling.classList.toggle('open')">
+<h3>🔄 MOVESET UPGRADES (DO FIRST)</h3><span class="arrow">▶</span>
+</div>
+<div class="collapse-body">
+<table class="moveset-table">
+<tr><th>Pokémon</th><th>Drop</th><th>Learn</th><th>How</th><th>Why</th></tr>
+<tr><td style="font-weight:700;color:var(--electric)">PATCH.EXE</td><td style="color:var(--danger)">Double Kick</td><td style="color:var(--green)">Bite</td><td>Move Relearner (Two Island, 2 TinyMushrooms)</td><td>Dark is Special in Gen 3 → uses 110 Sp.Atk. Double Kick uses 65 Atk. Bite also flinches 30%.</td></tr>
+<tr><td style="font-weight:700;color:var(--poison)">SUDO.EXE</td><td style="color:var(--danger)">Dig</td><td style="color:var(--green)">Sludge Bomb</td><td>TM36 (Rocket Warehouse, Five Island)</td><td>Poison STAB, 90 power. Dig is redundant with Earthquake.</td></tr>
+<tr><td style="font-weight:700;color:var(--poison)">SUDO.EXE</td><td style="color:var(--danger)">Double Kick</td><td style="color:var(--green)">Brick Break</td><td>TM31 (Celadon Dept Store, buy)</td><td>75 power vs Double Kick 2×30. Breaks Reflect/Light Screen (Exeggutor rematch).</td></tr>
+</table>
+<div class="tac-note" style="margin-top:8px"><strong>Updated final movesets after changes:</strong><br>
+PATCH.EXE: Thunderbolt / <strong style="color:var(--green)">Bite</strong> / Quick Attack / Thunder Wave<br>
+SUDO.EXE: Earthquake / <strong style="color:var(--green)">Sludge Bomb</strong> / Megahorn / <strong style="color:var(--green)">Brick Break</strong></div>
+</div></div>
+
+<div class="battle-card">
+<div class="collapse-toggle" onclick="this.classList.toggle('open');this.nextElementSibling.classList.toggle('open')">
+<h3>💎 HELD ITEM UPGRADES</h3><span class="arrow">▶</span>
+</div>
+<div class="collapse-body">
+<table class="moveset-table">
+<tr><th>Pokémon</th><th>New Item</th><th>Location</th><th>Why</th></tr>
+<tr><td style="font-weight:700;color:var(--normal)">AFK.CORE</td><td>Leftovers (keep ✅)</td><td>Already have</td><td>Still the best. Passive 1/16 HP stacks with Rest/Sleep Talk.</td></tr>
+<tr><td style="font-weight:700;color:var(--water)">GLACIER.DB</td><td style="color:var(--ice)">NeverMeltIce</td><td>Icefall Cave (Four Island) — floor item</td><td>Boosts Ice Beam → guarantees OHKO on Lance's bulkier Lv.66+ Dragonites</td></tr>
+<tr><td style="font-weight:700;color:var(--poison)">SUDO.EXE</td><td style="color:var(--amber)">Quick Claw</td><td>Safari Zone Rest House</td><td>Average Speed. Quick Claw gives free first-turns sometimes</td></tr>
+<tr><td style="font-weight:700;color:var(--psychic)">ZYNX</td><td style="color:var(--psychic)">TwistedSpoon</td><td>Thief (TM46) from wild Abra — Routes 5-8</td><td>Ensures Psychic OHKOs Bruno's sturdier Lv.65 fighters</td></tr>
+<tr><td style="font-weight:700;color:var(--fire)">LPG</td><td style="color:var(--amber)">Charcoal</td><td>Celadon Game Corner (1,000 coins) or Thief from Magmar</td><td>Swap Lum Berry → Charcoal for E4 rematch. +20% Fire moves.</td></tr>
+<tr><td style="font-weight:700;color:var(--electric)">PATCH.EXE</td><td style="color:var(--amber)">King's Rock</td><td>Sevault Canyon (Seven Island)</td><td>10% flinch on every hit. Jolteon outspeeds almost everything — free flinch turns.</td></tr>
+</table>
+<div class="tac-note" style="margin-top:8px;border-left-color:var(--blue)"><strong>📝 NOTE:</strong> Teach TM46 Thief to a spare slot on any mon to farm held items from wild Pokémon (Abra for TwistedSpoon, Magmar for Charcoal).</div>
+</div></div>
+
+<div class="section-title">📈 GRIND TO 65-70</div>
+<div class="grind-card"><h3>🏔️ SEVAULT CANYON (SEVEN ISLAND) — BEST POST-GAME EXP</h3><p>Cooltrainers + PKMN Rangers with Lv.50+ Pokémon. Highest EXP in post-game. VS Seeker rematches. Healing spot midway. Also where King's Rock is.</p></div>
+<div class="grind-card"><h3>🌊 CERULEAN CAVE (B1F) — HIGH LEVEL WILDS</h3><p>Wild Pokémon Lv.46-70. Ditto, Chansey, Golbat, Parasect, Wobbuffet. High EXP per battle. Mewtwo is here too — catch it while grinding.</p></div>
+<div class="grind-card"><h3>💰 RESORT GORGEOUS (FIVE ISLAND) — BEST MONEY</h3><p>Lady Selphy and rich trainers with massive payouts. Amulet Coin on LPG for grinding sessions. Use this money for Full Restores ×30 + Revives ×20 at Indigo Plateau.</p></div>
+
+<div class="section-title">🎒 REMATCH BAG CHECKLIST</div>
+<div class="tac-note"><strong>Buy at Indigo Plateau before E4 rematch:</strong> Full Restore ×30, Revive ×20. Use Resort Gorgeous money (Amulet Coin on for every fight there).</div>
+<div class="tac-note"><strong>SAVE BEFORE E4 REMATCH.</strong> Indigo Plateau Pokémon Center. L+R+Start+Select to soft-reset on loss.</div>`}
+
+function renderNotes(){document.getElementById('view-notes').innerHTML=`
+
+<div class="section-title">📋 GAME CHECKLIST</div>
+<div style="font-size:12px;color:var(--text-dim);margin-bottom:12px">Full run arc — done items are struck through. Post-game tasks are active.</div>
+
+<div class="battle-card" style="padding:14px">
+<div style="font-family:'Press Start 2P',monospace;font-size:9px;color:var(--text-muted);margin-bottom:10px;letter-spacing:1px">KANTO STORY — COMPLETE</div>
+<div style="font-size:12px;line-height:2;color:var(--text-dim)">
+<span style="text-decoration:line-through">🪙 Collect all 8 Gym Badges</span><br>
+<span style="text-decoration:line-through">⚡ TM24 Thunderbolt × 2 — PATCH.EXE + GLACIER.DB</span><br>
+<span style="text-decoration:line-through">🐉 TM02 Dragon Claw — LPG (Victory Road)</span><br>
+<span style="text-decoration:line-through">🌍 TM26 Earthquake — SUDO.EXE (Giovanni, Gym 8)</span><br>
+<span style="text-decoration:line-through">🔥 Blast Burn — LPG (Cape Brink tutor, 2 Island)</span><br>
+<span style="text-decoration:line-through">🗑️ Delete CUT from SUDO.EXE (Move Deleter, Fuchsia)</span><br>
+<span style="text-decoration:line-through">⚡ Zapdos #145 — Power Plant (second-to-last Ultra Ball)</span><br>
+<span style="text-decoration:line-through">❄️ Articuno #144 — Seafoam Islands (30-40 Ultra Balls)</span><br>
+<span style="text-decoration:line-through">🔥 Moltres #146 — Mt. Ember, 1 Island (first Ultra Ball)</span><br>
+<span style="text-decoration:line-through">🏆 Beat Elite Four + Champion BLUE — ZULU is Champion</span>
+</div>
+</div>
+
+<div class="battle-card" style="padding:14px;margin-top:0">
+<div style="font-family:'Press Start 2P',monospace;font-size:9px;color:var(--amber);margin-bottom:10px;letter-spacing:1px">POST-GAME — IN PROGRESS</div>
+<div style="font-size:12px;line-height:2">
+<span style="color:var(--text)">⚔️ Sevii 4–7 — story + Ruby/Sapphire quest for Celio</span><br>
+<span style="color:var(--text)">🔄 Moveset upgrades — Bite (PATCH.EXE), Sludge Bomb + Brick Break (SUDO.EXE)</span><br>
+<span style="color:var(--text)">💎 Held items — NeverMeltIce, King's Rock, Charcoal, TwistedSpoon, Quick Claw</span><br>
+<span style="color:var(--text)">📈 Grind all 6 to Lv.65–70</span><br>
+<span style="color:var(--text)">🧬 Catch Mewtwo #150 — Cerulean Cave (Lv.70, save before)</span><br>
+<span style="color:var(--text)">🔥🔥 Beat E4 Rematch (Lv.64–75 teams)</span>
+</div>
+</div>
+
+<div class="section-title" style="margin-top:8px">🎒 ITEMS + BERRIES — FULL ASSIGNMENT TABLE</div>
+<div style="font-size:12px;color:var(--text-dim);margin-bottom:10px">Held item is the default loadout. Backup berry swaps in against specific E4 members. AFK.CORE never swaps Leftovers.</div>
+<div style="overflow-x:auto"><table class="moveset-table">
+<tr><th>Pokémon</th><th>Held Item</th><th>Priority</th><th>Backup Berry</th><th>Swap When</th><th>Item Status</th></tr>
+<tr>
+  <td style="font-weight:700;color:var(--fire)">LPG<br><span style="font-size:10px;color:var(--text-muted)">Charizard</span></td>
+  <td><span style="color:var(--amber);font-weight:700">Charcoal</span><br><span style="font-size:10px;color:var(--text-dim)">+20% Fire moves</span></td>
+  <td style="color:var(--fire-red);font-weight:700">P1</td>
+  <td><span style="color:var(--green)">Lum Berry</span><br><span style="font-size:10px;color:var(--text-dim)">Cures any status</span></td>
+  <td style="font-size:11px;color:var(--text-dim)">vs Agatha (Confuse Ray) or Lance (Thunder Wave)</td>
+  <td style="color:var(--amber)">⬜ Needed<br><span style="font-size:10px">Celadon Game Corner (1,000c) or Thief/Magmar</span></td>
+</tr>
+<tr>
+  <td style="font-weight:700;color:var(--electric)">PATCH.EXE<br><span style="font-size:10px;color:var(--text-muted)">Jolteon</span></td>
+  <td><span style="color:var(--amber);font-weight:700">King's Rock</span><br><span style="font-size:10px;color:var(--text-dim)">10% flinch/hit</span></td>
+  <td style="color:var(--fire-red);font-weight:700">P1</td>
+  <td><span style="color:var(--blue)">Chesto Berry</span><br><span style="font-size:10px;color:var(--text-dim)">Cures Sleep</span></td>
+  <td style="font-size:11px;color:var(--text-dim)">vs Agatha (Hypnosis) or Blue (Exeggutor Sleep Powder)</td>
+  <td style="color:var(--amber)">⬜ Needed<br><span style="font-size:10px">Sevault Canyon (7 Island)</span></td>
+</tr>
+<tr>
+  <td style="font-weight:700;color:var(--ice)">GLACIER.DB<br><span style="font-size:10px;color:var(--text-muted)">Lapras</span></td>
+  <td><span style="color:var(--ice);font-weight:700">NeverMeltIce</span><br><span style="font-size:10px;color:var(--text-dim)">+20% Ice moves</span></td>
+  <td style="color:var(--fire-red);font-weight:700">P1</td>
+  <td><span style="color:var(--amber)">Cheri Berry</span><br><span style="font-size:10px;color:var(--text-dim)">Cures Paralysis</span></td>
+  <td style="font-size:11px;color:var(--text-dim)">vs Lance (Thunder Wave ruins her sweep)</td>
+  <td style="color:var(--amber)">⬜ Needed<br><span style="font-size:10px">Icefall Cave floor (4 Island)</span></td>
+</tr>
+<tr>
+  <td style="font-weight:700;color:var(--normal)">AFK.CORE<br><span style="font-size:10px;color:var(--text-muted)">Snorlax</span></td>
+  <td><span style="color:var(--green);font-weight:700">Leftovers ✅</span><br><span style="font-size:10px;color:var(--text-dim)">1/16 HP/turn</span></td>
+  <td style="color:var(--fire-red);font-weight:700">P1</td>
+  <td><span style="color:var(--text-muted)">Never swap</span><br><span style="font-size:10px;color:var(--text-dim)">Rest + Leftovers = unkillable</span></td>
+  <td style="font-size:11px;color:var(--text-muted)">—</td>
+  <td style="color:var(--green)">✅ Have<br><span style="font-size:10px">Route 12/16 hidden</span></td>
+</tr>
+<tr>
+  <td style="font-weight:700;color:var(--poison)">SUDO.EXE<br><span style="font-size:10px;color:var(--text-muted)">Nidoking</span></td>
+  <td><span style="color:var(--amber);font-weight:700">Quick Claw</span><br><span style="font-size:10px;color:var(--text-dim)">20% move-first</span></td>
+  <td style="color:var(--amber);font-weight:700">P2</td>
+  <td><span style="color:var(--amber)">Persim Berry</span><br><span style="font-size:10px;color:var(--text-dim)">Cures Confusion</span></td>
+  <td style="font-size:11px;color:var(--text-dim)">vs Agatha (Confuse Ray). Poison type blocks Toxic already.</td>
+  <td style="color:var(--amber)">⬜ Needed<br><span style="font-size:10px">Safari Zone Rest House</span></td>
+</tr>
+<tr>
+  <td style="font-weight:700;color:var(--psychic)">ZYNX<br><span style="font-size:10px;color:var(--text-muted)">Jynx</span></td>
+  <td><span style="color:var(--psychic);font-weight:700">TwistedSpoon</span><br><span style="font-size:10px;color:var(--text-dim)">+20% Psychic</span></td>
+  <td style="color:var(--amber);font-weight:700">P2</td>
+  <td><span style="color:var(--green)">Lum Berry</span><br><span style="font-size:10px;color:var(--text-dim)">Cures any status</span></td>
+  <td style="font-size:11px;color:var(--text-dim)">Always — glass cannon can't afford a wasted turn</td>
+  <td style="color:var(--amber)">⬜ Needed<br><span style="font-size:10px">Thief from wild Abra (Routes 5–8)</span></td>
+</tr>
+</table></div>
+<div class="tac-note" style="margin-top:8px"><strong>Berry sources:</strong> Lum Berry (10% rare) · Chesto/Persim/Cheri/Pecha — all from Berry Forest, Three Island. Respawn every ~1,500 steps. Use Itemfinder.</div>
+
+<div class="section-title">📖 MASTER MOVESET (POST-GAME FINAL)</div>
+<div style="overflow-x:auto"><table class="moveset-table"><tr><th>Pokémon</th><th>Move 1</th><th>Move 2</th><th>Move 3</th><th>Move 4</th></tr>${teamState.map(p=>`<tr><td style="font-weight:700;color:${TC[p.types[0]]}"><span class="dex-num">${p.dex}</span> ${p.nick||p.name}<br><span style="font-size:10px;color:var(--text-muted);font-weight:400">${p.nick?p.name:''}</span></td>${p.finalMoves.map(m=>`<td><span style="color:${TC[m.type]}">${m.name}</span><br><span style="font-size:10px;color:var(--text-muted)">${m.slot}</span></td>`).join('')}</tr>`).join('')}</table></div>
+
+<div class="section-title">⚡ GEN 3 PHYSICAL / SPECIAL SPLIT</div>
+<div class="mechanics-card"><h4>HOW FIRERED WORKS</h4><p>Whether a move is Physical or Special depends on its TYPE — not the move itself. Completely different from modern Pokémon.</p><div class="split-grid"><div class="split-col physical"><h5 style="color:var(--fire-red)">Physical (Attack)</h5>Normal, Fighting, Poison, Ground, Flying, Bug, Rock, Ghost, Steel</div><div class="split-col special"><h5 style="color:var(--blue)">Special (Sp.Atk)</h5>Fire, Water, Electric, Grass, Ice, Psychic, Dragon, Dark</div></div><p style="margin-top:10px"><strong>Memory trick:</strong> All Eeveelution types + Dragon = Special. Everything else = Physical.</p></div>
+<div class="impact-item"><strong>Shadow Ball (Ghost) = PHYSICAL.</strong> Snorlax (110 Atk) crushes Agatha's team. This is the whole strategy.</div>
+<div class="impact-item"><strong>Dragon Claw (Dragon) = SPECIAL.</strong> Scales off Charizard's 109 Sp.Atk. Would be Physical in Gen 4+.</div>
+<div class="impact-item"><strong>Megahorn (Bug) = PHYSICAL.</strong> Nidoking 102 Atk + 120pw = one-shots Alakazam and Exeggutor.</div>
+<div class="impact-item"><strong>Bite (Dark) = SPECIAL.</strong> PATCH.EXE post-game upgrade — uses 110 Sp.Atk vs Double Kick's 65 Atk. 30% flinch too.</div>
+<div class="impact-item"><strong>Fly (Flying) = PHYSICAL.</strong> Charizard's weaker 84 Atk. Fine for coverage, not explosive.</div>
+
+<div class="section-title">🗺️ HM COVERAGE</div>
+<div class="hm-grid"><div class="hm-item"><div class="hm-move">FLY</div><div class="hm-holder">LPG / Aerodactyl</div></div><div class="hm-item"><div class="hm-move">SURF</div><div class="hm-holder">GLACIER.DB</div></div><div class="hm-item"><div class="hm-move">STRENGTH</div><div class="hm-holder">Aerodactyl (slave)</div></div><div class="hm-item"><div class="hm-move">ROCK SMASH</div><div class="hm-holder">Aerodactyl (slave)</div></div><div class="hm-item"><div class="hm-move">CUT</div><div class="hm-holder">SUDO.EXE — delete post Sevii</div></div><div class="hm-item" style="border-color:var(--amber)"><div class="hm-move" style="color:var(--amber)">WATERFALL</div><div class="hm-holder" style="color:var(--amber)">TBD — Gyarados candidate</div></div></div>
+<div style="margin-top:10px;font-size:12px;color:var(--text-dim)">Aerodactyl stays in PC unless needed. Waterfall required for Icefall Cave (4 Island) — Gyarados is the natural candidate as a second HM carrier without touching the main team's movesets.</div>
+
+<div class="section-title">⚡❄️🔥 LEGENDARY BIRDS</div>
+<div style="display:grid;gap:8px;margin-top:8px">
+<div style="padding:12px 16px;background:rgba(253,216,53,0.06);border:1px solid rgba(253,216,53,0.2);border-radius:8px"><div style="font-weight:700;color:var(--electric)">⚡ Zapdos #145 — Power Plant</div><div style="font-size:12px;color:var(--text-dim);margin-top:4px">Caught on the <strong>second-to-last Ultra Ball</strong>. Pure clutch.</div></div>
+<div style="padding:12px 16px;background:rgba(79,195,247,0.06);border:1px solid rgba(79,195,247,0.2);border-radius:8px"><div style="font-weight:700;color:var(--ice)">❄️ Articuno #144 — Seafoam Islands</div><div style="font-size:12px;color:var(--text-dim);margin-top:4px">The grind. Somewhere between <strong>30–40 Ultra Balls</strong>. Patience rewarded.</div></div>
+<div style="padding:12px 16px;background:rgba(239,83,80,0.06);border:1px solid rgba(239,83,80,0.2);border-radius:8px"><div style="font-weight:700;color:var(--fire)">🔥 Moltres #146 — Mt. Ember (1 Island)</div><div style="font-size:12px;color:var(--text-dim);margin-top:4px"><strong>FIRST ULTRA BALL.</strong> Paralyzed + low HP = one and done. Bought 50, used 1.</div></div>
+</div>
+
+<div class="section-title">📖 DID YOU KNOW?</div>
+<div class="trivia-box"><strong>📖</strong> FRLG released in 2004 for GBA — the first-ever Pokémon remakes. The Switch re-release (Feb 27, 2026) is their modern debut.</div>
+<div class="trivia-box"><strong>📖</strong> Your traded Jynx gets boosted EXP (1.5×) because her OT doesn't match yours. This is why she outlevelled the team and hit Ice Beam + Fake Tears ahead of schedule.</div>
+<div class="trivia-box"><strong>📖</strong> There are exactly TWO Snorlax in the entire game (Route 12 and 16). If you KO'd both... well, you didn't. Good job.</div>
+<div class="trivia-box"><strong>📖</strong> No Dark-type Pokémon exist in Kanto without trading. That's why Agatha's Ghost/Poison team is so oppressive — the intended counter doesn't exist in the region.</div>
+<div class="trivia-box"><strong>📖</strong> Blue beat the E4 moments before you arrived. You're dethroning a Champion who JUST sat down. His Blastoise (Lv.63) is the highest-level mon in the first E4 run.</div>
+<div class="trivia-box"><strong>📖</strong> Shadow Ball was nerfed in Gen 4 — it went from a Physical Ghost move (great on Snorlax) to a Special one. AFK.CORE's whole Agatha strategy would fall apart in any modern game.</div>
+`}
+
+document.querySelectorAll('.tab').forEach(tab=>{tab.addEventListener('click',()=>{document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));document.querySelectorAll('.view').forEach(v=>v.classList.remove('active'));tab.classList.add('active');document.getElementById('view-'+tab.dataset.view).classList.add('active')})});
+renderTeam();renderBattles();renderRematch();renderGrind();renderSevii();renderNotes();
+
+function renderSevii(){
+const sKey='sevii-checks';
+const defaults={'i1-hm06':true,'i1-ultra':true,'i1-carbos':true,'i1-ether':true,'i1-repel':true,'i1-moltres':true,'i2-blast':true,'i2-revive':true,'i3-moon':true,'i3-iapapa':true,'pd-persian':true,'pd-moltres2':true,'i4-ice':false,'i4-hm07':false,'i4-rocket':false,'i4-articuno':false,'i5-rocket':false,'i5-sludge':false,'i5-sapphire':false,'i5-lost':false,'i5-loot':false,'i5-money':false,'i6-dotted':false,'i6-ruin':false,'i7-kingsrock':false,'i7-grind':false,'i7-tower':false,'i7-tanoby':false,'i-mewtwo':false};
+let checks={...defaults};
+try{const s=sessionStorage.getItem(sKey);if(s)checks={...defaults,...JSON.parse(s)};}catch(e){}
+const chk=(id,label,star)=>{const c=checks[id]?'checked':'';const cls=checks[id]?'color:var(--green);text-decoration:line-through':'color:var(--text)';return `<label style="display:flex;align-items:flex-start;gap:8px;padding:8px 12px;background:var(--bg-card);border:1px solid var(--border);border-radius:6px;margin-bottom:6px;cursor:pointer;font-size:12px;line-height:1.5"><input type="checkbox" ${c} onchange="seviiCheck('${id}',this.checked)" style="margin-top:2px;accent-color:var(--green);flex-shrink:0">${star?'⭐ ':''}<span style="${cls}">${label}</span></label>`};
+
+document.getElementById('view-sevii').innerHTML=`
+<div style="margin-bottom:16px">
+  <div style="font-size:11px;color:var(--text-dim);margin-bottom:4px">SEVII ISLANDS — ALL PHASES</div>
+  <h2 style="font-family:'Press Start 2P',monospace;font-size:14px;color:var(--water)">🏝️ SEVII ISLANDS 1-7</h2>
+  <div style="font-size:12px;color:var(--text-dim);margin-top:6px">Islands 1-3 ✅ Complete. Islands 4-7 unlocked post-E4 with Rainbow Pass.</div>
+</div>
+
+<div class="tac-note" style="border-left-color:var(--green)"><strong>✅ ISLANDS 1-3:</strong> Done. Moltres caught. Blast Burn learned. Moon Stone obtained. Berry Forest stocked.</div>
+<div class="tac-note"><strong>🔓 ISLANDS 4-7 UNLOCKED.</strong> You have the Rainbow Pass. Do these before grinding to 65-70 — they have key held items (NeverMeltIce on 4 Island) and TMs (Sludge Bomb on 5 Island).</div>
+
+<!-- ===== QUICK NAV ===== -->
+<div style="display:flex;gap:8px;margin:16px 0;flex-wrap:wrap">
+  <a href="#sev-1" style="padding:8px 14px;background:var(--bg-card);border:1px solid var(--green);border-radius:6px;color:var(--green);text-decoration:none;font-size:12px;font-weight:600">🔥 1 ✅</a>
+  <a href="#sev-2" style="padding:8px 14px;background:var(--bg-card);border:1px solid var(--green);border-radius:6px;color:var(--green);text-decoration:none;font-size:12px;font-weight:600">🌿 2 ✅</a>
+  <a href="#sev-3" style="padding:8px 14px;background:var(--bg-card);border:1px solid var(--green);border-radius:6px;color:var(--green);text-decoration:none;font-size:12px;font-weight:600">🌲 3 ✅</a>
+  <a href="#sev-4island" style="padding:8px 14px;background:var(--bg-card);border:1px solid var(--ice);border-radius:6px;color:var(--ice);text-decoration:none;font-size:12px;font-weight:600">🧊 4 — Floe</a>
+  <a href="#sev-5island" style="padding:8px 14px;background:var(--bg-card);border:1px solid var(--amber);border-radius:6px;color:var(--amber);text-decoration:none;font-size:12px;font-weight:600">🚀 5 — Chrono</a>
+  <a href="#sev-6island" style="padding:8px 14px;background:var(--bg-card);border:1px solid var(--dragon);border-radius:6px;color:var(--dragon);text-decoration:none;font-size:12px;font-weight:600">💎 6 — Fortune</a>
+  <a href="#sev-7island" style="padding:8px 14px;background:var(--bg-card);border:1px solid var(--psychic);border-radius:6px;color:var(--psychic);text-decoration:none;font-size:12px;font-weight:600">🏟️ 7 — Quest</a>
+</div>
+
+<!-- ===== ONE ISLAND ===== -->
+<div id="sev-1" class="battle-card" style="margin-top:8px;opacity:0.45;filter:grayscale(0.3)">
+  <div style="position:absolute;top:0;left:0;right:0;height:3px;background:var(--text-muted)"></div>
+  <div class="collapse-toggle" onclick="this.classList.toggle('open');this.nextElementSibling.classList.toggle('open')">
+    <h3>✅ ISLAND 1 — ONE ISLAND (KNOT ISLAND) <span style="font-size:9px;color:var(--green);font-family:'Chakra Petch',sans-serif;font-weight:400">DONE</span></h3>
+    <span class="arrow">▶</span>
+  </div>
+  <div class="collapse-body">
+  <div class="trainer-type">Kindle Road → Ember Spa → Mt. Ember → Moltres</div>
+
+  <div class="section-title" style="margin-top:12px">ROUTE: ONE ISLAND TOWN → KINDLE ROAD</div>
+  <div style="font-size:13px;line-height:1.8;color:var(--text-dim)">
+    <strong style="color:var(--text)">1.</strong> Bill takes you to the <strong>Pokémon Network Center</strong>. Meet Celio. Get <strong style="color:var(--amber)">Tri-Pass</strong> + <strong style="color:var(--amber)">Meteorite</strong>.<br>
+    <strong style="color:var(--text)">2.</strong> Head <strong>east</strong> from town, <strong>Surf northeast</strong> to reach <strong style="color:var(--ember)">Kindle Road</strong>.<br>
+    <strong style="color:var(--text)">3.</strong> <strong style="color:var(--amber)">~12 trainers</strong> along Kindle Road (Swimmers, Crush Girls, Black Belts, Campers).<br>
+    &nbsp;&nbsp;• <strong style="color:var(--electric)">Swimmers</strong> → PATCH.EXE (Thunder) or GLACIER.DB (Thunderbolt when learned)<br>
+    &nbsp;&nbsp;• <strong style="color:var(--fighting)">Crush Girls / Black Belts</strong> → ZYNX (Psychic) — she sweeps all Fighting types<br>
+    &nbsp;&nbsp;• Give <strong>Amulet Coin</strong> to whoever leads
+  </div>
+
+  <div class="section-title">EMBER SPA (MIDWAY UP KINDLE ROAD)</div>
+  <div style="font-size:13px;line-height:1.6;color:var(--text-dim)">
+    Look for a <strong style="color:var(--text)">cave entrance</strong> in the middle of Kindle Road, between the beach trainers and the northern surf section. It's easy to walk past — the entrance is embedded in the cliff face.<br><br>
+    <strong style="color:var(--green)">Inside:</strong> Stand in the hot spring water → <strong>full party heal (HP + PP, free)</strong>. This is your infinite healing station.<br>
+    <strong style="color:var(--amber)">HM06 Rock Smash:</strong> Talk to the <strong>old man</strong> standing to the side (NOT in the water). He hands it over.<br><br>
+    <strong style="color:var(--text)">Who has Rock Smash?</strong> Your Aerodactyl HM slave already knows it — you're covered. No need to teach it to anyone on your main team.
+  </div>
+
+  <div class="section-title">AFTER EMBER SPA → ITEMS ON KINDLE ROAD</div>
+  <div style="font-size:13px;line-height:1.6;color:var(--text-dim)">
+    Backtrack south from Ember Spa. Use Rock Smash (Aerodactyl) on the breakable rocks near the tall grass:<br>
+    • <strong style="color:var(--amber)">Ether</strong> — behind rocks near first grass patch<br>
+    • <strong style="color:var(--amber)">Carbos</strong> — behind rocks further down, past the ledge steps<br>
+    Then head back north past the spa, <strong>Surf north</strong> to reach Mt. Ember.
+  </div>
+
+  <div class="section-title">MT. EMBER (NEEDS: STRENGTH + ROCK SMASH)</div>
+  <div style="font-size:13px;line-height:1.8;color:var(--text-dim)">
+    <strong style="color:var(--text)">At the base:</strong> Two Team Rocket Grunts whispering. <strong style="color:var(--danger)">Can't battle them yet</strong> (post-E4 only). Ignore them.<br>
+    <strong style="color:var(--text-muted)">Explosion Move Tutor:</strong> Hiker just north of where you land after surfing. <strong style="color:var(--text-muted)">Skip — no one on your team needs this.</strong><br>
+    <strong style="color:var(--text)">Head left and up</strong> into the caves. Aerodactyl handles Strength + Rock Smash for the puzzles.<br>
+    <strong style="color:var(--text)">Boulder puzzles</strong> reset if you leave the floor and come back — don't panic if you mess up.<br>
+    <strong style="color:var(--text)">Collect along the way:</strong> 2× Fire Stone, Ultra Ball (see checklist below).<br>
+    <strong style="color:var(--fire-red)">Summit: MOLTRES Lv.50.</strong> Save before engaging!
+  </div>
+
+  <div class="danger-box"><strong>⚠ MOLTRES #146 (Lv.50 Fire/Flying):</strong> Lead with GLACIER.DB — Surf chips it (super effective but won't OHKO). Use Confuse Ray to buy turns. Switch to ZYNX for Lovely Kiss (sleep) if needed. <strong>DON'T use Ice Beam</strong> — 4× super effective will KO it. Bring 30+ Ultra Balls. Timer Balls work great if the fight drags past 10 turns. If you accidentally KO it, it respawns when you leave and return.</div>
+
+  <div class="tip-box"><strong>💡 GRINDING:</strong> Kindle Road + Ember Spa + VS Seeker = infinite EXP loop. Best pre-E4 grinding spot in the game. Fly back to One Island Pokémon Center, walk east, Surf to Kindle Road, fight trainers, heal at spa, repeat.</div>
+
+  <div class="section-title">TREASURE BEACH (SOUTH OF ONE ISLAND — EASY TO MISS)</div>
+  <div style="font-size:13px;color:var(--text-dim);line-height:1.6">Surf <strong>south</strong> from the dock area. Hidden items on the sand — use <strong>Itemfinder</strong>. Stardust, Star Piece, Pearls, Big Pearls, Ultra Balls. Items regenerate. Good money source (sell at shops).</div>
+
+  <div class="section-title">✅ ISLAND 1 CHECKLIST</div>
+  ${chk('i1-hm06','HM06 Rock Smash — Ember Spa (old man)',true)}
+  ${chk('i1-fire1','Fire Stone #1 — Mt. Ember (hidden in rock below stairs)',true)}
+  ${chk('i1-fire2','Fire Stone #2 — Mt. Ember (behind boulder puzzle)',true)}
+  ${chk('i1-ultra','Ultra Ball — Mt. Ember caves (dead end)',false)}
+  ${chk('i1-carbos','Carbos — Kindle Road (behind breakable rocks)',false)}
+  ${chk('i1-ether','Ether — Kindle Road (behind breakable rocks)',false)}
+  ${chk('i1-repel','Max Repel — Kindle Road (sandy area, surf right)',false)}
+  ${chk('i1-moltres','🔥 Caught Moltres #146 (Lv.50, Mt. Ember Summit)',true)}
+</div></div>
+
+<!-- ===== TWO ISLAND ===== -->
+<div id="sev-2" class="battle-card" style="opacity:0.45;filter:grayscale(0.3)">
+  <div style="position:absolute;top:0;left:0;right:0;height:3px;background:var(--text-muted)"></div>
+  <div class="collapse-toggle" onclick="this.classList.toggle('open');this.nextElementSibling.classList.toggle('open')">
+    <h3>✅ ISLAND 2 — TWO ISLAND (BOON ISLAND) <span style="font-size:9px;color:var(--green);font-family:'Chakra Petch',sans-serif;font-weight:400">DONE</span></h3>
+    <span class="arrow">▶</span>
+  </div>
+  <div class="collapse-body">
+  <div class="trainer-type">Game Corner → Cape Brink (Blast Burn) → Move Reminder</div>
+
+  <div class="section-title" style="margin-top:12px">WALKTHROUGH</div>
+  <div style="font-size:13px;line-height:1.8;color:var(--text-dim)">
+    <strong style="color:var(--text)">1.</strong> Ferry from One Island. Small island — <strong>no wild Pokémon</strong> (seas too rough).<br>
+    <strong style="color:var(--text)">2.</strong> Enter <strong>Joyful Game Corner</strong> (tan house, blue roof). Owner is worried — daughter Lostelle is missing on Three Island.<br>
+    <strong style="color:var(--text)">3.</strong> <strong style="color:var(--danger)">Before going to Three Island</strong> → head <strong>north</strong> to <strong style="color:var(--ember)">Cape Brink</strong> first.<br>
+    <strong style="color:var(--text)">4.</strong> Cape Brink: <strong style="color:var(--amber)">~3 trainers</strong> in the grass. At the top: <strong>Move Tutor house</strong>.<br>
+    <strong style="color:var(--text)">5.</strong> <strong style="color:var(--fire-red)">BLAST BURN for LPG!</strong> Put Charizard in <strong>slot 1</strong>. Must be fully evolved + max friendship. She teaches <strong style="color:var(--fire)">Blast Burn</strong> (150 power, recharge turn). <strong>One-time only</strong>.<br>
+    <strong style="color:var(--text)">6.</strong> Back in town: <strong>Cut</strong> the tree below the Pokémon Center → <strong style="color:var(--amber)">Revive</strong>.<br>
+    <strong style="color:var(--text)">7.</strong> <strong>Move Reminder</strong> is on this island — re-teaches forgotten moves for 2 Tiny Mushrooms or 1 Big Mushroom. (Wild Paras/Parasect hold these.)
+  </div>
+
+  <div class="tip-box"><strong>💡 BLAST BURN:</strong> 150 power Fire Special nuke with recharge turn. Already taught to LPG (replaced Brick Break). Flamethrower is your reliable STAB — Blast Burn is the boss-fight finisher.</div>
+
+  <div class="section-title">FACILITIES</div>
+  <div style="font-size:13px;color:var(--text-dim);line-height:1.6">
+    <strong style="color:var(--text)">Move Reminder</strong> — Re-teaches any previously known move. Costs 2 Tiny Mushrooms or 1 Big Mushroom.<br>
+    <strong style="color:var(--text)">Market</strong> — Limited now (Great Balls, Fresh Water). Expands post-E4.<br>
+    <strong style="color:var(--text)">Game Corner</strong> — Pokémon Jump + Dodrio Berry Picking (multiplayer minigames, need Dodrio for berry picking).
+  </div>
+
+  <div class="section-title">✅ ISLAND 2 CHECKLIST</div>
+  ${chk('i2-blast','Blast Burn taught to LPG (Cape Brink Move Tutor)',true)}
+  ${chk('i2-revive','Revive — below Pokémon Center (use Cut)',false)}
+</div></div>
+
+<!-- ===== THREE ISLAND ===== -->
+<div id="sev-3" class="battle-card" style="opacity:0.45;filter:grayscale(0.3)">
+  <div style="position:absolute;top:0;left:0;right:0;height:3px;background:var(--text-muted)"></div>
+  <div class="collapse-toggle" onclick="this.classList.toggle('open');this.nextElementSibling.classList.toggle('open')">
+    <h3>✅ ISLAND 3 — THREE ISLAND <span style="font-size:9px;color:var(--green);font-family:'Chakra Petch',sans-serif;font-weight:400">DONE</span></h3>
+    <span class="arrow">▶</span>
+  </div>
+  <div class="collapse-body">
+  <div class="trainer-type">Beat Bikers → Bond Bridge → Berry Forest → Rescue Lostelle → Moon Stone</div>
+
+  <div class="section-title" style="margin-top:12px">PART 1: THREE ISLAND TOWN</div>
+  <div style="font-size:13px;line-height:1.8;color:var(--text-dim)">
+    <strong style="color:var(--text)">1.</strong> Ferry to Three Island. Bikers harassing the town.<br>
+    <strong style="color:var(--text)">2.</strong> Walk north toward bikers. <strong style="color:var(--amber)">~4-5 sequential battles</strong> (Poison types). <strong style="color:var(--psychic)">ZYNX solos with Psychic</strong>.<br>
+    <strong style="color:var(--text)">3.</strong> Town opens up after bikers cleared. Grab items:<br>
+    &nbsp;&nbsp;• <strong>Cut</strong> tree top-right corner → <strong style="color:var(--amber)">Zinc</strong><br>
+    &nbsp;&nbsp;• <strong>Cut</strong> tree below western steps → <strong style="color:var(--amber)">PP Up</strong> (use on Thunderbolt or Ice Beam!)
+  </div>
+
+  <div class="danger-box"><strong>⚠ THREE ISLE PATH (east cave at port):</strong> Man inside is still digging. <strong>Nothing to do here yet</strong> — post-E4 he gives you a Nugget. Don't waste time.</div>
+
+  <div class="section-title">PART 2: BOND BRIDGE → BERRY FOREST</div>
+  <div style="font-size:13px;line-height:1.8;color:var(--text-dim)">
+    <strong style="color:var(--text)">4.</strong> Head <strong>west</strong> out of town to <strong style="color:var(--ember)">Bond Bridge</strong>. <strong style="color:var(--amber)">~6 trainers</strong> (Tubers, Twins, Pokéfans).<br>
+    <strong style="color:var(--text)">5.</strong> Cross bridge west into <strong style="color:var(--ember)">Berry Forest</strong>.<br>
+    <strong style="color:var(--text)">6.</strong> Berry Forest is a maze. Navigate to the <strong>northwest corner</strong>. Pick up items along the way:<br>
+    &nbsp;&nbsp;• <strong style="color:var(--amber)">Full Heal</strong> — above the top pool<br>
+    &nbsp;&nbsp;• <strong style="color:var(--amber)">Max Ether</strong> — east of the NW area<br>
+    &nbsp;&nbsp;• <strong style="color:var(--amber)">Max Elixir</strong> — below the bottom pool — <strong style="color:var(--danger)">SAVE FOR E4!</strong><br>
+    <strong style="color:var(--text)">7.</strong> NW corner: <strong>Lostelle</strong> is scared. Wild <strong style="color:var(--psychic)">Hypno Lv.30</strong> appears. <strong style="color:var(--green)">CATCH IT for your Pokédex!</strong><br>
+    <strong style="color:var(--text)">8.</strong> Lostelle gives you <strong style="color:var(--amber)">Iapapa Berry</strong> → auto-warp to Two Island Game Corner.<br>
+    <strong style="color:var(--text)">9.</strong> Talk to Lostelle's father → deliver <strong>Meteorite</strong> → receive <strong style="color:var(--amber)">Moon Stone</strong>!
+  </div>
+
+  <div class="tip-box"><strong>💡 BERRY FOREST — ONLY RENEWABLE BERRY SOURCE IN FRLG:</strong> Hidden berry spots on the ground respawn every ~1,500 steps. Use Itemfinder. Lum Berry (cures any status) has a 10% rare drop. Come back periodically to restock.</div>
+
+  <div class="section-title">✅ ISLAND 3 CHECKLIST — KEY ITEMS</div>
+  ${chk('i3-moon','Moon Stone — from Lostelle\'s father (Meteorite delivery)',true)}
+  ${chk('i3-elixir','Max Elixir — Berry Forest (below bottom pool) ⚠ SAVE FOR E4',true)}
+  ${chk('i3-ether','Max Ether — Berry Forest (east of NW area)',true)}
+  ${chk('i3-heal','Full Heal — Berry Forest (above top pool)',false)}
+  ${chk('i3-ppup','PP Up — Three Island town (Cut tree, west steps)',true)}
+  ${chk('i3-zinc','Zinc — Three Island town (Cut tree, top-right)',false)}
+  ${chk('i3-iapapa','Iapapa Berry — from Lostelle',false)}
+
+  <div class="section-title">✅ POKÉDEX CATCHES (FIRST ENCOUNTERS)</div>
+  ${chk('pd-hypno','Hypno #097 — Berry Forest (story Lv.30 + wild Lv.30-40)',true)}
+  ${chk('pd-drowzee','Drowzee #096 — Bond Bridge (grass)',true)}
+  ${chk('pd-persian','Persian #053 — Bond Bridge (grass, evolved Meowth)',true)}
+  ${chk('pd-exeggcute','Exeggcute #102 — Berry Forest (evolves w/ Leaf Stone)',true)}
+  ${chk('pd-psyduck','Psyduck #054 — Berry Forest (Surf)',false)}
+  ${chk('pd-golduck','Golduck #055 — Berry Forest (Surf)',false)}
+  ${chk('pd-ponyta','Ponyta #077 — Kindle Road (grass)',false)}
+  ${chk('pd-rapidash','Rapidash #078 — Kindle Road (grass)',false)}
+  ${chk('pd-moltres2','Moltres #146 — Mt. Ember Summit (Lv.50)',true)}
+</div></div>
+
+<!-- ===== RETURN / WRAP 1-3 ===== -->
+<div class="battle-card" style="border-color:var(--green);opacity:0.7">
+  <div style="position:absolute;top:0;left:0;right:0;height:3px;background:var(--green)"></div>
+  <h3>✅ ISLANDS 1-3 COMPLETE</h3>
+  <div class="trainer-type">Moltres · Blast Burn · Moon Stone · Berry Forest · Legendary Birds all caught</div>
+  <div class="tip-box" style="margin-top:8px"><strong>💡 Berry Forest</strong> still respawns Lum Berries every ~1,500 steps. Worth revisiting if you need more.</div>
+</div>
+
+<!-- ===== ISLAND 4 ===== -->
+<div id="sev-4island" class="battle-card" style="margin-top:8px">
+  <div style="position:absolute;top:0;left:0;right:0;height:3px;background:var(--ice)"></div>
+  <div class="collapse-toggle" onclick="this.classList.toggle('open');this.nextElementSibling.classList.toggle('open')">>
+    <h3>🧊 ISLAND 4 — FLOE ISLAND</h3><span class="arrow">▶</span>
+  </div>
+  <div class="collapse-body">
+  <div class="trainer-type">Icefall Cave → HM07 Waterfall → Articuno</div>
+
+  <div class="tac-note" style="border-left-color:var(--ice)"><strong>⭐ KEY LOOT HERE:</strong> <strong style="color:var(--ice)">NeverMeltIce</strong> for GLACIER.DB — floor item inside Icefall Cave. Pick this up first.</div>
+
+  <div class="section-title" style="margin-top:12px">WALKTHROUGH</div>
+  <div style="font-size:13px;line-height:1.8;color:var(--text-dim)">
+    <strong style="color:var(--text)">1.</strong> Arrive at Floe Island (4 Island). Head north to <strong>Icefall Cave</strong>.<br>
+    <strong style="color:var(--text)">2.</strong> Entrance requires <strong>Strength</strong> — Aerodactyl can push boulders.<br>
+    <strong style="color:var(--text)">3.</strong> Inside: pick up <strong style="color:var(--ice)">NeverMeltIce</strong> (floor item — use Itemfinder if needed). Give immediately to GLACIER.DB.<br>
+    <strong style="color:var(--text)">4.</strong> Navigate deeper to find <strong style="color:var(--amber)">HM07 Waterfall</strong> — needed to reach deeper parts of the cave. Teach to Gyarados or a secondary HM carrier. <strong>Do not give to GLACIER.DB</strong> — her moveset stays clean.<br>
+    <strong style="color:var(--text)">5.</strong> Team Rocket Grunt event — small story, clear him out.<br>
+    <strong style="color:var(--text)">6.</strong> <strong style="color:var(--ice)">Articuno (Lv.50)</strong> is at the back of the cave. <strong>SAVE BEFORE.</strong><br>
+    &nbsp;&nbsp;• Chip to red HP — GLACIER.DB Ice Beam at Lv.52 may OHKO, so use Thunderbolt or Confuse Ray first.<br>
+    &nbsp;&nbsp;• Use Ultra Balls. Articuno has 3× catch rate — easier than Zapdos but still painful.
+  </div>
+
+  <div class="danger-box"><strong>⚠ NOTE:</strong> Articuno is already caught (Seafoam Islands). This is a second encounter — catch for dex or skip. Either way grab the NeverMeltIce.</div>
+
+  <div class="section-title">✅ ISLAND 4 CHECKLIST</div>
+  ${chk('i4-ice','NeverMeltIce — Icefall Cave floor (⭐ equip to GLACIER.DB immediately)',true)}
+  ${chk('i4-hm07','HM07 Waterfall — Icefall Cave',false)}
+  ${chk('i4-rocket','Clear Team Rocket Grunt in Icefall Cave (story event)',false)}
+  ${chk('i4-articuno','Articuno #144 — optional 2nd catch for dex',false)}
+  </div>
+</div>
+
+<!-- ===== ISLAND 5 ===== -->
+<div id="sev-5island" class="battle-card">
+  <div style="position:absolute;top:0;left:0;right:0;height:3px;background:var(--amber)"></div>
+  <div class="collapse-toggle" onclick="this.classList.toggle('open');this.nextElementSibling.classList.toggle('open')">>
+    <h3>🚀 ISLAND 5 — CHRONO ISLAND</h3><span class="arrow">▶</span>
+  </div>
+  <div class="collapse-body">
+  <div class="trainer-type">Rocket Warehouse → Sapphire → Lost Cave → Resort Gorgeous</div>
+
+  <div class="tac-note" style="border-left-color:var(--amber)"><strong>⭐ KEY LOOT HERE:</strong> <strong style="color:var(--green)">TM36 Sludge Bomb</strong> inside Rocket Warehouse. Critical for SUDO.EXE upgrade.</div>
+
+  <div class="section-title" style="margin-top:12px">PART 1: ROCKET WAREHOUSE</div>
+  <div class="danger-box"><strong>⚠ STORY REQUIRED:</strong> You need the Warehouse Password from the Team Rocket Grunt in Icefall Cave (4 Island). Do 4 Island first.</div>
+  <div style="font-size:13px;line-height:1.8;color:var(--text-dim);margin-top:8px">
+    <strong style="color:var(--text)">1.</strong> Enter the <strong>Rocket Warehouse</strong> on Chrono Island. Lots of Grunts + Admins — good EXP, treat as a grind zone.<br>
+    <strong style="color:var(--text)">2.</strong> Pick up <strong style="color:var(--green)">TM36 Sludge Bomb</strong> inside — teach to SUDO.EXE (replace Dig).<br>
+    <strong style="color:var(--text)">3.</strong> Defeat <strong>Ariana & Archer</strong> (Executives). Tough fight — bring Full Restores.<br>
+    <strong style="color:var(--text)">4.</strong> Obtain the <strong style="color:var(--amber)">Sapphire</strong> gem at the end.<br>
+    <strong style="color:var(--text)">5.</strong> Return to <strong>Celio on 1 Island</strong> with the Sapphire. This completes his quest and unlocks full National Dex trading.
+  </div>
+
+  <div class="section-title">PART 2: LOST CAVE</div>
+  <div style="font-size:13px;line-height:1.8;color:var(--text-dim)">
+    <strong style="color:var(--text)">6.</strong> Head east from 5 Island town → Water Path → <strong>Lost Cave</strong>.<br>
+    <strong style="color:var(--text)">7.</strong> It's a maze. Correct door sequence: <strong style="color:var(--amber)">Right → Up → Up → Left → Down → Up → Right</strong>.<br>
+    <strong style="color:var(--text)">8.</strong> Find <strong>Lady Selphy</strong> at the end. Defeat her to unlock Resort Gorgeous prizes.<br>
+    <strong style="color:var(--text)">9.</strong> Items inside: <strong style="color:var(--amber)">Silk Scarf, Max Revive, Spell Tag, Lax Incense</strong>.
+  </div>
+
+  <div class="tip-box"><strong>💡 RESORT GORGEOUS (east of 5 Island):</strong> Lady Jacki + Lady Gillian — massive prize money per fight. Best money farm in the game. Run Amulet Coin on LPG here every session.</div>
+
+  <div class="section-title">✅ ISLAND 5 CHECKLIST</div>
+  ${chk('i5-rocket','Clear Rocket Warehouse (story — required for National Dex)',false)}
+  ${chk('i5-sludge','TM36 Sludge Bomb — Rocket Warehouse (⭐ teach to SUDO.EXE → replace Dig)',true)}
+  ${chk('i5-sapphire','Deliver Sapphire to Celio on 1 Island',false)}
+  ${chk('i5-lost','Lost Cave — defeat Lady Selphy',false)}
+  ${chk('i5-loot','Lost Cave items: Max Revive, Spell Tag, Lax Incense, Silk Scarf',false)}
+  ${chk('i5-money','Farm Resort Gorgeous with Amulet Coin on LPG',false)}
+  </div>
+</div>
+
+<!-- ===== ISLAND 6 ===== -->
+<div id="sev-6island" class="battle-card">
+  <div style="position:absolute;top:0;left:0;right:0;height:3px;background:var(--dragon)"></div>
+  <div class="collapse-toggle" onclick="this.classList.toggle('open');this.nextElementSibling.classList.toggle('open')">>
+    <h3>💎 ISLAND 6 — FORTUNE ISLAND</h3><span class="arrow">▶</span>
+  </div>
+  <div class="collapse-body">
+  <div class="trainer-type">Dotted Hole → Sapphire (stolen) → send to Rocket Warehouse</div>
+
+  <div class="section-title" style="margin-top:12px">WALKTHROUGH</div>
+  <div style="font-size:13px;line-height:1.8;color:var(--text-dim)">
+    <strong style="color:var(--text)">1.</strong> Arrive at 6 Island. Head south to <strong>Dotted Hole</strong>.<br>
+    <strong style="color:var(--text)">2.</strong> Use <strong>Cut</strong> (SUDO.EXE) on the runic door to open it.<br>
+    <strong style="color:var(--text)">3.</strong> Fall through the holes in order: <strong style="color:var(--amber)">Down → Left → Right → Up</strong>.<br>
+    <strong style="color:var(--text)">4.</strong> Pick up the <strong style="color:var(--amber)">Sapphire</strong>. A Rocket Scientist immediately steals it — this triggers the 5 Island Rocket Warehouse event.<br>
+    <strong style="color:var(--text)">5.</strong> Also explore <strong>Ruin Valley</strong> east of town — Unown puzzle area with a few items.
+  </div>
+
+  <div class="tac-note"><strong>NOTE:</strong> Island 6 is short. The main point is triggering the Sapphire quest which sends you to 5 Island's Rocket Warehouse. Do 6 before 5 if you haven't started Celio's quest yet.</div>
+
+  <div class="section-title">✅ ISLAND 6 CHECKLIST</div>
+  ${chk('i6-dotted','Dotted Hole — enter and trigger Sapphire theft (story)',false)}
+  ${chk('i6-ruin','Ruin Valley — optional Unown hunt + item sweep',false)}
+  </div>
+</div>
+
+<!-- ===== ISLAND 7 ===== -->
+<div id="sev-7island" class="battle-card">
+  <div style="position:absolute;top:0;left:0;right:0;height:3px;background:var(--psychic)"></div>
+  <div class="collapse-toggle" onclick="this.classList.toggle('open');this.nextElementSibling.classList.toggle('open')">>
+    <h3>🏟️ ISLAND 7 — QUEST ISLAND</h3><span class="arrow">▶</span>
+  </div>
+  <div class="collapse-body">
+  <div class="trainer-type">Sevault Canyon (best EXP) → Trainer Tower → Tanoby Ruins</div>
+
+  <div class="tac-note" style="border-left-color:var(--psychic)"><strong>⭐ KEY LOOT HERE:</strong> <strong style="color:var(--amber)">King's Rock</strong> in Sevault Canyon — item ball. Equip to PATCH.EXE.</div>
+
+  <div class="section-title" style="margin-top:12px">SEVAULT CANYON — GRIND ZONE</div>
+  <div style="font-size:13px;line-height:1.8;color:var(--text-dim)">
+    <strong style="color:var(--text)">1.</strong> Enter Sevault Canyon from 7 Island town. Cooltrainers + PKMN Rangers with Lv.50+ Pokémon — best EXP in the post-game.<br>
+    <strong style="color:var(--text)">2.</strong> Find <strong style="color:var(--amber)">King's Rock</strong> item ball in the canyon. Equip to PATCH.EXE.<br>
+    <strong style="color:var(--text)">3.</strong> Use VS Seeker to rematch trainers. Healing house midway through canyon.
+  </div>
+
+  <div class="section-title">TRAINER TOWER</div>
+  <div style="font-size:13px;line-height:1.8;color:var(--text-dim)">
+    <strong style="color:var(--text)">4.</strong> North of 7 Island. 8 floors, back-to-back battles, timed. No healing between floors — enter at full HP.<br>
+    <strong style="color:var(--text)">5.</strong> Enemy levels ~Lv.50-55. Do <strong>after</strong> your team hits ~60.<br>
+    <strong style="color:var(--text)">6.</strong> Clearing prize based on time: <strong style="color:var(--amber)">&lt;30 min</strong> = TM (Shadow Ball, Psychic, or PP Up). Choose Single mode for fastest run.
+  </div>
+
+  <div class="section-title">TANOBY RUINS (OPTIONAL — POKÉDEX)</div>
+  <div style="font-size:13px;line-height:1.8;color:var(--text-dim)">
+    <strong style="color:var(--text)">7.</strong> <strong>Tanoby Key</strong> first (west of 7 Island) — solve the puzzle (7 boulders into holes with Strength). This unlocks Unown spawns.<br>
+    <strong style="color:var(--text)">8.</strong> 7 Tanoby Chambers each have different Unown letter forms. 26 total. Repel trick (Lv.25 lead) to control encounters.
+  </div>
+
+  <div class="section-title">✅ ISLAND 7 CHECKLIST</div>
+  ${chk('i7-kingsrock',"King's Rock — Sevault Canyon item ball (⭐ equip to PATCH.EXE)",true)}
+  ${chk('i7-grind','Grind Sevault Canyon trainers to Lv.60+',false)}
+  ${chk('i7-tower','Trainer Tower — clear all 8 floors (do after Lv.60)',false)}
+  ${chk('i7-tanoby','Tanoby Key puzzle — unlock Unown (optional)',false)}
+  </div>
+</div>
+
+<!-- ===== MEWTWO ===== -->
+<div class="battle-card" style="border-color:var(--psychic)">
+  <div style="position:absolute;top:0;left:0;right:0;height:3px;background:var(--psychic)"></div>
+  <div class="collapse-toggle" onclick="this.classList.toggle('open');this.nextElementSibling.classList.toggle('open')">
+    <h3>🧬 CERULEAN CAVE — MEWTWO (Lv.70)</h3><span class="arrow">▶</span>
+  </div>
+  <div class="collapse-body">
+  <div class="trainer-type">Cerulean City — unlocked post-E4</div>
+  <div style="font-size:13px;line-height:1.8;color:var(--text-dim);margin-top:8px">
+    <strong style="color:var(--text)">1.</strong> Cerulean Cave is now open (north of Cerulean City, requires Surf).<br>
+    <strong style="color:var(--text)">2.</strong> <strong style="color:var(--psychic)">Mewtwo is Lv.70</strong> — the highest level catchable Pokémon in the game. <strong>SAVE BEFORE.</strong><br>
+    <strong style="color:var(--text)">3.</strong> Bring Pokémon that can status it without KOing: Thunder Wave (PATCH.EXE) then ball spam.<br>
+    <strong style="color:var(--text)">4.</strong> Use Ultra Balls. If you have a Master Ball — this is what it's for.<br>
+    <strong style="color:var(--text)">5.</strong> Cave also has high-level wild Pokémon (Lv.46-70) — excellent grinding spot alongside Sevault Canyon.
+  </div>
+  <div class="danger-box"><strong>⚠ DO NOT use Ice Beam or Thunderbolt</strong> — at Lv.70 Mewtwo is tanky but your moves may still OHKO. Use Thunder Wave → chip with weaker moves → ball spam.</div>
+  ${chk('i-mewtwo','Mewtwo #150 — Cerulean Cave Lv.70 (SAVE BEFORE!)',false)}
+  </div>
+</div>
+
+<div style="margin-top:12px;text-align:center"><button class="reset-btn" onclick="if(confirm('Reset all Sevii checkboxes?')){sessionStorage.removeItem('${sKey}');renderSevii()}">↺ Reset Sevii Checkboxes</button></div>
+`}
+window.seviiCheck=function(id,val){let c={};try{const s=sessionStorage.getItem('sevii-checks');if(s)c=JSON.parse(s)}catch(e){}if(val)c[id]=true;else delete c[id];sessionStorage.setItem('sevii-checks',JSON.stringify(c));renderSevii()}
+</script>
+</body>
+</html>
